@@ -46,12 +46,13 @@ contract ArenaEdgeTest is Test {
         internal
         returns (uint256 id)
     {
-        uint64 commitDeadline = uint64(block.timestamp + 1 hours);
+        uint64 commitDeadline = uint64(vm.getBlockTimestamp() + 1 hours);
         vm.startPrank(owner);
+        // The round's question (and the signer of the moment) must be pinned before the round exists.
+        adapter.pinQuestion(arena.roundCount() + 1, QUESTION, 1, 5, 4, commitDeadline, "");
         id = arena.createRound(
             mode, choices, commitDeadline, commitDeadline + 1 hours, commitDeadline + 2 hours, prize, threshold, 0
         );
-        adapter.pinQuestion(id, QUESTION, 1, 5, 4, commitDeadline, "");
         vm.stopPrank();
     }
 
@@ -432,6 +433,74 @@ contract ArenaEdgeTest is Test {
         assertEq(paid, winners * 100 ether + per * winners);
         assertEq(arena.totalEscrowed(), 0);
         assertEq(arena.lockedPrizes(), 0);
+        accounted();
+    }
+
+    // ------------------------------------------------------------------ the result source is frozen before entry
+
+    /// @dev A round cannot open without its question, and the pin's `notBefore` must equal the commit deadline
+    /// to the second: one second either way is refused, so the adapter can never store an answer while
+    /// commitments are still open.
+    function test_createRoundRefusesMissingOrMisalignedPin() public {
+        uint64 commitDeadline = uint64(vm.getBlockTimestamp() + 1 hours);
+        uint256 next = arena.roundCount() + 1;
+        vm.startPrank(owner);
+        vm.expectRevert(Arena.QuestionNotPinned.selector);
+        arena.createRound(
+            Arena.Mode.VaultRaid, 4, commitDeadline, commitDeadline + 1 hours, commitDeadline + 2 hours, 0, 0, 0
+        );
+        adapter.pinQuestion(next, QUESTION, 1, 5, 4, commitDeadline, "");
+        vm.expectRevert(Arena.QuestionNotPinned.selector);
+        arena.createRound(
+            Arena.Mode.VaultRaid, 4, commitDeadline - 1, commitDeadline + 1 hours, commitDeadline + 2 hours, 0, 0, 0
+        );
+        vm.expectRevert(Arena.QuestionNotPinned.selector);
+        arena.createRound(
+            Arena.Mode.VaultRaid, 4, commitDeadline + 1, commitDeadline + 1 hours, commitDeadline + 2 hours, 0, 0, 0
+        );
+        uint256 id = arena.createRound(
+            Arena.Mode.VaultRaid, 4, commitDeadline, commitDeadline + 1 hours, commitDeadline + 2 hours, 0, 0, 0
+        );
+        vm.stopPrank();
+        assertEq(id, next);
+        Arena.Round memory r = arena.rounds(id);
+        assertEq(address(r.oracle), address(adapter));
+        assertEq(r.questionHash, QUESTION);
+        // The same pin cannot be reused for the next round (ids are sequential, pins are per id).
+        vm.prank(owner);
+        vm.expectRevert(Arena.QuestionNotPinned.selector);
+        arena.createRound(
+            Arena.Mode.VaultRaid, 4, commitDeadline, commitDeadline + 1 hours, commitDeadline + 2 hours, 0, 0, 0
+        );
+    }
+
+    /// @dev After the grace, `cancel` and `settle` are exclusive: a result stored after the grace flips the
+    /// round from cancellable to settle-only in the same second, and a cancelled round rejects a late result.
+    function test_cancelAndSettleAreExclusiveAfterTheGrace() public {
+        uint256 id = createRound(Arena.Mode.VaultRaid, 4, 10 ether, 0);
+        enter(id, alice, 1);
+        Arena.Round memory r = arena.rounds(id);
+        vm.warp(uint256(r.resultDeadline) + 72 hours);
+        assertFalse(arena.resolved(id));
+        // Resolved at the last moment: cancel is refused, settle works.
+        attest(id, 0, uint64(block.timestamp));
+        assertTrue(arena.resolved(id));
+        vm.expectRevert(Arena.RoundResolved.selector);
+        arena.cancel(id);
+        arena.settle(id);
+        assertEq(arena.payoutOf(id, alice), 80 ether, "alice never revealed");
+
+        // A second round cancelled first: the result that arrives later cannot settle it.
+        uint256 id2 = createRound(Arena.Mode.VaultRaid, 4, 10 ether, 0);
+        enter(id2, bob, 2);
+        r = arena.rounds(id2);
+        vm.warp(uint256(r.resultDeadline) + 72 hours);
+        arena.cancel(id2);
+        attest(id2, 0, uint64(block.timestamp));
+        vm.expectRevert(Arena.NotOpen.selector);
+        arena.settle(id2);
+        assertEq(arena.payoutOf(id2, bob), 102 ether);
+        assertFalse(arena.resolved(id2) && arena.rounds(id2).state == Arena.RoundState.Open);
         accounted();
     }
 

@@ -68,6 +68,7 @@ contract ArenaHandler is Test {
         commitIn = bound(commitIn, 1 hours, 1 days);
         uint64 commitDeadline = uint64(block.timestamp + commitIn);
         vm.startPrank(owner);
+        adapter.pinQuestion(arena.roundCount() + 1, QUESTION, 1, 5, 4, commitDeadline, "");
         uint256 id = arena.createRound(
             Arena.Mode(mode),
             choices,
@@ -78,7 +79,6 @@ contract ArenaHandler is Test {
             threshold,
             keccak256(abi.encode(arena.roundCount() + 1))
         );
-        adapter.pinQuestion(id, QUESTION, 1, 5, 4, commitDeadline, "");
         vm.stopPrank();
         prizeOf[id] = prize;
     }
@@ -103,8 +103,10 @@ contract ArenaHandler is Test {
         if (token.balanceOf(p) < 102 ether) return;
         choice = uint8(bound(choice, 1, r.choiceCount));
         uint256 before = token.balanceOf(p);
+        // Computed first: an external view call as an argument would consume the prank.
+        bytes32 commitment = arena.commitmentOf(id, p, choice, _salt(id, p));
         vm.prank(p);
-        arena.enter(id, arena.commitmentOf(id, p, choice, _salt(id, p)));
+        arena.enter(id, commitment);
         assertEq(before - token.balanceOf(p), 102 ether, "exactly 102 PRIO pulled");
         ghostEntries++;
         ghostEntryCost += 102 ether;

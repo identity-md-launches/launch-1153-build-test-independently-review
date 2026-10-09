@@ -49,15 +49,28 @@ contract TreasuryFeeHookEdgeTest is Fixture {
 
     // ------------------------------------------------------------------ dust
 
-    /// @dev One wei in: the whole wei is the (rounded-up) fee, the pool swaps nothing, nothing reverts.
+    /// @dev One wei in: the whole wei would be the (rounded-up) fee with nothing left to swap, so the buy is
+    /// refused with `SwapTooSmall` rather than swallowed; nothing is charged and the trader keeps the wei.
     function test_oneWeiBuyIsAllFeeAndDoesNotRevert() public {
         uint256 prioBefore = token.balanceOf(trader);
         uint256 ethBefore = trader.balance;
-        swap(trader, true, -1, 1);
-        assertEq(ethBefore - trader.balance, 1);
-        assertEq(token.balanceOf(trader), prioBefore, "no PRIO for a 1 wei input");
-        assertEq(treasury.totalIncome(), 1);
-        assertEq(hook.totalFeeCharged(), 1);
+        vm.startPrank(trader);
+        vm.expectRevert();
+        swapRouter.swap{value: 1}(
+            key,
+            SwapParams({zeroForOne: true, amountSpecified: -1, sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1}),
+            PoolSwapTest.TestSettings(false, false),
+            ""
+        );
+        vm.stopPrank();
+        assertEq(trader.balance, ethBefore);
+        assertEq(token.balanceOf(trader), prioBefore);
+        assertEq(treasury.totalIncome(), 0);
+        assertEq(hook.totalFeeCharged(), 0);
+        // The refusal is the hook's own, surfaced through the manager's hook-call wrapper.
+        (uint256 fee, uint256 leg) = hook.quoteBuyExactInput(1);
+        assertEq(fee, 1);
+        assertEq(leg, 0, "a zero pool leg is what SwapTooSmall guards");
     }
 
     /// @dev Up to 200 wei the fee is exactly one wei; the swapper still gets the rest swapped.
@@ -83,10 +96,11 @@ contract TreasuryFeeHookEdgeTest is Fixture {
         assertGe(treasury.totalIncome() - incomeBefore, 1, "a non-zero ETH leg always pays at least one wei");
     }
 
-    /// @dev No shape reverts anywhere between one wei and a large trade, with a full-range limit.
+    /// @dev No shape reverts anywhere between one wei and a large trade, with a full-range limit. The one
+    /// exception is a 1-wei exact-input buy, which has no pool leg left after the fee and is refused.
     function testFuzz_everyShapeSucceedsAcrossMagnitudes(uint256 raw, uint8 shape) public {
         shape = uint8(bound(shape, 0, 3));
-        uint256 amount = bound(raw, 1, 100 ether);
+        uint256 amount = bound(raw, shape == 0 ? 2 : 1, 100 ether);
         bool zeroForOne = shape < 2;
         bool exactIn = shape % 2 == 0;
         int256 spec = exactIn ? -int256(amount) : int256(amount);

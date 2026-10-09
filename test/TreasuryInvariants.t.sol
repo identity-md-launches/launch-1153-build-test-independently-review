@@ -181,6 +181,9 @@ contract TreasuryInvariantsTest is Fixture {
         vault.setRewardFunder(address(treasury));
         treasury.setSinks(address(vault), address(arena), makeAddr("adapter"));
         treasury.setExecutor(address(handler));
+        // Purchases are refused until the owner sets a price floor; the pool opens at 1:1 with 1.25% LP fee
+        // plus the 0.5% hook fee, so 0.9 PRIO per ETH is a realistic floor that bounded buys clear.
+        treasury.setPriceFloors(0.9e18, 0.9e18);
         vm.stopPrank();
 
         targetContract(address(handler));

@@ -118,6 +118,8 @@ contract OracleAdapterEdgeTest is Test {
         assertFalse(adapter.resultOf(1).settled);
     }
 
+    /// @dev Rotation is forward-only: a round pinned under the old signer keeps it (the new key cannot sign
+    /// for it), and a round pinned after the rotation accepts only the new key. Zero is refused.
     function test_signerRotationRevokesOldSigner_andZeroRefused() public {
         address newSigner = vm.addr(OTHER_KEY);
         vm.prank(owner);
@@ -128,12 +130,66 @@ contract OracleAdapterEdgeTest is Test {
         adapter.setSigner(newSigner);
         vm.prank(owner);
         adapter.setSigner(newSigner);
+        assertEq(adapter.oracleSigner(), newSigner);
+        assertEq(adapter.pinned(1).signer, SIGNER, "round 1 keeps the signer it was pinned with");
+
+        // Round 1: pinned before the rotation. The new key is a stranger to it; the old key still settles it.
         OracleAttestation.Attestation memory a = att(1);
-        bytes memory oldSig = signWith(SIGNER_KEY, a);
+        bytes memory aByNew = signWith(OTHER_KEY, a);
+        bytes memory aByOld = signWith(SIGNER_KEY, a);
         vm.expectRevert(ConsumerErrors.BadSignature.selector);
-        adapter.submitAttestation(1, a, oldSig);
-        adapter.submitAttestation(1, a, signWith(OTHER_KEY, a));
+        adapter.submitAttestation(1, a, aByNew);
+        adapter.submitAttestation(1, a, aByOld);
         assertTrue(adapter.resultOf(1).settled);
+
+        // Round 2: pinned after the rotation. The old key is revoked for it.
+        vm.prank(owner);
+        adapter.pinQuestion(2, QUESTION, 1, 5, 4, T0 - 1 hours, "");
+        assertEq(adapter.pinned(2).signer, newSigner);
+        OracleAttestation.Attestation memory b = att(2);
+        bytes memory bByOld = signWith(SIGNER_KEY, b);
+        bytes memory bByNew = signWith(OTHER_KEY, b);
+        vm.expectRevert(ConsumerErrors.BadSignature.selector);
+        adapter.submitAttestation(2, b, bByOld);
+        adapter.submitAttestation(2, b, bByNew);
+        assertTrue(adapter.resultOf(2).settled);
+    }
+
+    /// @dev The chain clock gate is exact: one second before `notBefore` nothing is stored, at it the same
+    /// attestation (issued within the tolerance) is.
+    function test_boundaryIsInclusiveOnTheChainClock() public {
+        uint64 notBefore = T0 + 1 hours;
+        vm.prank(owner);
+        adapter.pinQuestion(2, QUESTION, 1, 5, 4, notBefore, "");
+        OracleAttestation.Attestation memory a = att(7);
+        a.issuedAt = notBefore - 5 minutes;
+        a.expiresAt = notBefore + 1 days;
+        bytes memory sig = signWith(SIGNER_KEY, a);
+        vm.warp(notBefore - 1);
+        vm.expectRevert(abi.encodeWithSelector(OracleAdapter.BeforeBoundary.selector, notBefore));
+        adapter.submitAttestation(2, a, sig);
+        assertFalse(adapter.resultOf(2).settled);
+        vm.warp(notBefore);
+        adapter.submitAttestation(2, a, sig);
+        assertTrue(adapter.resultOf(2).settled);
+    }
+
+    /// @dev A paid request is gated by the same clock, and a request refused for the clock spends nothing.
+    function test_requestRefusedBeforeBoundarySpendsNothing() public {
+        configurePaid();
+        imd.transfer(address(adapter), 1 ether);
+        uint64 notBefore = T0 + 1 hours;
+        vm.prank(owner);
+        adapter.pinQuestion(2, QUESTION, 1, 5, 4, notBefore, "");
+        vm.prank(executor);
+        vm.expectRevert(abi.encodeWithSelector(OracleAdapter.BeforeBoundary.selector, notBefore));
+        adapter.request(2);
+        assertEq(adapter.spentInWindow(), 0);
+        assertEq(imd.balanceOf(address(adapter)), 1 ether);
+        vm.warp(notBefore);
+        vm.prank(executor);
+        adapter.request(2);
+        assertEq(adapter.spentInWindow(), 0.5 ether);
     }
 
     /// @dev The same attestation cannot settle two rounds, even if both pin the same question.
