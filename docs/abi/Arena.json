@@ -410,6 +410,25 @@
   },
   {
     "type": "function",
+    "name": "resolved",
+    "inputs": [
+      {
+        "name": "roundId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "reveal",
     "inputs": [
       {
@@ -522,6 +541,16 @@
           },
           {
             "name": "rulesHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "oracle",
+            "type": "address",
+            "internalType": "contract IRoundOracle"
+          },
+          {
+            "name": "questionHash",
             "type": "bytes32",
             "internalType": "bytes32"
           }
@@ -974,6 +1003,11 @@
   },
   {
     "type": "error",
+    "name": "QuestionNotPinned",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
   },
@@ -995,6 +1029,11 @@
   {
     "type": "error",
     "name": "RevealWindowClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RoundResolved",
     "inputs": []
   },
   {

@@ -20,13 +20,27 @@ interface IRoundOracle {
         bool settled;
     }
 
+    struct Pinned {
+        bytes32 questionHash;
+        uint256 chainId;
+        uint16 minPanel;
+        uint16 minQuorum;
+        uint64 notBefore;
+        address signer;
+        bytes body;
+    }
+
     function resultOf(uint256 roundId) external view returns (Result memory);
+    function pinned(uint256 roundId) external view returns (Pinned memory);
     function ISSUED_AT_TOLERANCE() external view returns (uint64);
 }
 
 /// @title Arena: Vault Raid, faction duels and cooperative boss challenges on commit-reveal choices
 /// @notice Every round is frozen when the owner creates it: mode, number of choices, deadlines, funded prize,
-/// boss threshold and a hash of the published rules. Nothing about an open round can change.
+/// boss threshold, a hash of the published rules, and its result source: the oracle adapter and the question
+/// pinned there (whose `notBefore` must equal the round's commit deadline). Nothing about an open round can
+/// change: `setOracle` only affects rounds created afterwards, and the adapter keeps a pinned question and
+/// its signer immutable.
 ///
 /// Fixed published scoring, identical in every mode:
 ///   - entry locks 100 PRIO escrow + 2 PRIO entry fee (102 PRIO, pulled from the player's approval);
@@ -75,6 +89,8 @@ contract Arena is TwoStepOwned, ReentrancyGuard {
         uint256 entries;
         uint256 correct;
         bytes32 rulesHash;
+        IRoundOracle oracle; // the result source, frozen at creation
+        bytes32 questionHash; // the question pinned there for this round
     }
 
     struct Entry {
@@ -133,6 +149,8 @@ contract Arena is TwoStepOwned, ReentrancyGuard {
     error NoResult();
     error ResultTooEarly();
     error NotCancellable();
+    error RoundResolved();
+    error QuestionNotPinned();
     error NotSettled();
     error NotCancelled();
     error AlreadyClaimed();
@@ -144,13 +162,16 @@ contract Arena is TwoStepOwned, ReentrancyGuard {
 
     // ------------------------------------------------------------------ owner
 
+    /// @notice The adapter future rounds will be created against. Open rounds keep the one they were created with.
     function setOracle(IRoundOracle to) external onlyOwner {
         if (address(to) == address(0)) revert ZeroAddress();
         oracle = to;
         emit OracleSet(address(to));
     }
 
-    /// @notice Creates a frozen round. The prize is locked from the game pool now, before anyone enters.
+    /// @notice Creates a frozen round. The prize is locked from the game pool now, before anyone enters, and
+    /// the round's question must already be pinned on the oracle with `notBefore == commitDeadline`, so the
+    /// result source is fixed before the first entry. Round ids are sequential: pin `roundCount() + 1`.
     function createRound(
         Mode mode,
         uint8 choiceCount,
@@ -169,10 +190,15 @@ contract Arena is TwoStepOwned, ReentrancyGuard {
             revert BadDeadlines();
         }
         if (prize > unallocatedPrizePool) revert PrizeNotFunded();
+        roundId = roundCount + 1;
+        IRoundOracle.Pinned memory p = oracle.pinned(roundId);
+        if (p.questionHash == bytes32(0) || p.notBefore != commitDeadline) revert QuestionNotPinned();
         unallocatedPrizePool -= prize;
         lockedPrizes += prize;
-        roundId = ++roundCount;
+        roundCount = roundId;
         Round storage r = _rounds[roundId];
+        r.oracle = oracle;
+        r.questionHash = p.questionHash;
         r.mode = mode;
         r.state = RoundState.Open;
         r.choiceCount = choiceCount;
@@ -252,15 +278,25 @@ contract Arena is TwoStepOwned, ReentrancyGuard {
 
     // ------------------------------------------------------------------ settlement (permissionless)
 
-    /// @notice Settles with the verified oracle result. Fails without one; never loops over players.
+    /// @notice A valid result is on file for the round at the oracle it was created with.
+    function resolved(uint256 roundId) public view returns (bool) {
+        Round storage r = _rounds[roundId];
+        if (r.state == RoundState.None) return false;
+        IRoundOracle.Result memory res = r.oracle.resultOf(roundId);
+        // The same clock tolerance the adapter uses: the answer may not predate the commit boundary.
+        return res.settled && uint256(res.issuedAt) + r.oracle.ISSUED_AT_TOLERANCE() >= r.commitDeadline;
+    }
+
+    /// @notice Settles with the verified result from the round's own oracle. Fails without one; never loops
+    /// over players. There is no upper time bound: a resolved round settles, and only an unresolved one can
+    /// be cancelled, so the two outcomes never compete.
     function settle(uint256 roundId) external nonReentrant {
         Round storage r = _rounds[roundId];
         if (r.state != RoundState.Open) revert NotOpen();
         if (block.timestamp < r.revealDeadline) revert RevealNotOver();
-        IRoundOracle.Result memory res = oracle.resultOf(roundId);
+        IRoundOracle.Result memory res = r.oracle.resultOf(roundId);
         if (!res.settled) revert NoResult();
-        // The same clock tolerance the adapter uses: the answer may not predate the commit boundary.
-        if (uint256(res.issuedAt) + oracle.ISSUED_AT_TOLERANCE() < r.commitDeadline) revert ResultTooEarly();
+        if (uint256(res.issuedAt) + r.oracle.ISSUED_AT_TOLERANCE() < r.commitDeadline) revert ResultTooEarly();
         uint8 winning = uint8(res.answer % r.choiceCount) + 1;
         uint256 correct = tally[roundId][winning];
         bool prizePaid = correct > 0 && (r.mode != Mode.BossChallenge || correct >= r.bossThreshold);
@@ -277,11 +313,13 @@ contract Arena is TwoStepOwned, ReentrancyGuard {
         emit RoundSettled(roundId, winning, correct, perWinner);
     }
 
-    /// @notice Cancels a round with no valid result 72 hours after its result deadline. Everyone is refunded.
+    /// @notice Cancels a round that is still unresolved 72 hours after its result deadline. Everyone is
+    /// refunded. A round whose valid result is on file is resolved and must be settled instead.
     function cancel(uint256 roundId) external nonReentrant {
         Round storage r = _rounds[roundId];
         if (r.state != RoundState.Open) revert NotOpen();
         if (block.timestamp < uint256(r.resultDeadline) + CANCEL_GRACE) revert NotCancellable();
+        if (resolved(roundId)) revert RoundResolved();
         r.state = RoundState.Cancelled;
         lockedPrizes -= r.prize;
         unallocatedPrizePool += r.prize;

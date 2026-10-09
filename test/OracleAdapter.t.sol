@@ -244,6 +244,61 @@ contract OracleAdapterTest is Test {
         vm.stopPrank();
     }
 
+    // ------------------------------------------------------------------ the commit boundary
+
+    /// @dev Finding f3ad4c90: a valid answer issued inside the tolerance before the boundary was stored early.
+    function test_nothingIsStoredOrRequestedBeforeTheBoundary() public {
+        uint64 boundary = ISSUED_AT + 1 hours;
+        vm.prank(owner);
+        adapter.pinQuestion(2, QUESTION, 1, 5, 4, boundary, "");
+        vm.warp(boundary - 4 minutes);
+        OracleAttestation.Attestation memory a = roundAnswer(6);
+        a.issuedAt = uint64(block.timestamp);
+        bytes memory sig = sign(a);
+        vm.expectRevert(abi.encodeWithSelector(OracleAdapter.BeforeBoundary.selector, boundary));
+        adapter.submitAttestation(2, a, sig);
+        assertFalse(adapter.resultOf(2).settled);
+        configurePaid();
+        vm.prank(executor);
+        vm.expectRevert(abi.encodeWithSelector(OracleAdapter.BeforeBoundary.selector, boundary));
+        adapter.request(2);
+        // At the boundary both work, and the issued-at skew tolerance still applies.
+        vm.warp(boundary);
+        vm.prank(executor);
+        adapter.request(2);
+        adapter.submitAttestation(2, a, sig);
+        assertEq(adapter.resultOf(2).answer, 6);
+    }
+
+    function test_pinnedSignerOutlivesRotation() public {
+        OracleAttestation.Attestation memory a = roundAnswer(4);
+        bytes memory sig = sign(a);
+        vm.prank(owner);
+        adapter.setSigner(makeAddr("rotated"));
+        adapter.submitAttestation(1, a, sig);
+        assertEq(adapter.resultOf(1).answer, 4);
+        // A question pinned after the rotation needs the new signer.
+        vm.prank(owner);
+        adapter.pinQuestion(3, QUESTION, 1, 5, 4, ISSUED_AT - 1, "");
+        a = roundAnswer(5);
+        sig = sign(a);
+        vm.expectRevert(OracleAttestationConsumerErrors.BadSignature.selector);
+        adapter.submitAttestation(3, a, sig);
+    }
+
+    function test_withdrawTokenRefusesTheConfiguredAsset() public {
+        configurePaid();
+        vm.startPrank(owner);
+        vm.expectRevert(OracleAdapter.AssetNotWithdrawable.selector);
+        adapter.withdrawToken(address(imd), owner, 1 ether);
+        PrismRiotToken stray = new PrismRiotToken();
+        stray.transfer(address(adapter), 1 ether);
+        adapter.withdrawToken(address(stray), owner, 1 ether);
+        vm.stopPrank();
+        assertEq(stray.balanceOf(address(adapter)), 0);
+        assertEq(imd.balanceOf(address(adapter)), 5 ether, "the IMD bought for agent work stays");
+    }
+
     function test_clearStaleAfterTimeout() public {
         configurePaid();
         vm.prank(executor);

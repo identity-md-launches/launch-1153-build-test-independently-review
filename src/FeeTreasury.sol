@@ -34,10 +34,14 @@ interface IPrizeSink {
 ///   2. of the remainder: 30% IMD purchase budget (agent work), 30% PRIO purchase budget (rewards),
 ///      40% owner budget.
 /// Budgets are spent only by the executor through bounded, slippage-checked swaps on the Uniswap v4
-/// PoolManager, at most `maxSpendPerSwap` ETH per call. Purchased PRIO is split equally between the
-/// StakingVault (reward stream) and the Arena (game pool). Purchased IMD goes to the OracleAdapter.
-/// PRIO purchases depend only on the hook's own pool; IMD purchases wait for an owner-set IMD pool key.
-/// The reserve pays operator gas (`withdrawReserve`): a fee-funded bootstrap, never an advance.
+/// PoolManager: at most `maxSpendPerSwap` ETH per call, at most `spendPerWindow` ETH per rolling
+/// `SPEND_WINDOW` across both purchases, and never below the owner's price floors (`minPrioPerEth`,
+/// `minImdPerEth`), so a compromised executor key is bounded in rate and cannot buy at a self-set price.
+/// A swap that fills only partly (thin liquidity) spends only what the pool took; the rest stays on its
+/// budget line, so every wei the contract holds is always on exactly one line. Purchased PRIO is split
+/// equally between the StakingVault (reward stream) and the Arena (game pool). Purchased IMD goes to the
+/// OracleAdapter. PRIO purchases depend only on the hook's own pool; IMD purchases wait for an owner-set
+/// IMD pool key. The reserve pays operator gas (`withdrawReserve`): a fee-funded bootstrap, never an advance.
 contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using CurrencyLibrary for Currency;
@@ -48,6 +52,8 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
     uint256 public constant OWNER_BPS = 4_000;
     uint256 public constant BPS = 10_000;
     uint256 public constant MAX_RESERVE_TARGET = 2 ether;
+    uint256 public constant SPEND_WINDOW = 1 days;
+    uint256 internal constant ONE = 1e18;
 
     IPoolManager public immutable poolManager;
 
@@ -60,6 +66,13 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
     address public executor;
     uint256 public reserveTarget = 0.5 ether;
     uint256 public maxSpendPerSwap = 1 ether;
+    /// @notice ETH the executor may spend on purchases per rolling `SPEND_WINDOW`.
+    uint256 public spendPerWindow = 1 ether;
+    uint256 public windowStart;
+    uint256 public spentInWindow;
+    /// @notice Price floors, token units (18 decimals) per 1 ETH spent. Zero means not configured: refused.
+    uint256 public minPrioPerEth;
+    uint256 public minImdPerEth;
     PoolKey internal _imdPoolKey;
     bool public imdPoolSet;
 
@@ -79,6 +92,8 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
     event ExecutorSet(address indexed executor);
     event ReserveTargetSet(uint256 target);
     event MaxSpendSet(uint256 maxSpend);
+    event SpendPerWindowSet(uint256 perWindow);
+    event PriceFloorsSet(uint256 minPrioPerEth, uint256 minImdPerEth);
     event ImdPoolSet(address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks);
     event PrioBought(uint256 ethIn, uint256 prioOut, uint256 toStaking, uint256 toArena);
     event ImdBought(uint256 ethIn, uint256 imdOut);
@@ -93,7 +108,9 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
     error NotConfigured(string what);
     error ExceedsBudget();
     error ExceedsMaxSpend();
+    error ExceedsWindow();
     error Slippage();
+    error PoolMismatch();
     error NotPoolManager();
     error TooHigh();
     error TransferFailed();
@@ -128,13 +145,19 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
         emit PrioSet(prio_);
     }
 
+    /// @notice Changing the IMD token unsets the IMD pool: `setImdPool` must be called again for the new token.
     function setImd(address imd_) external onlyOwner {
         if (imd_ == address(0)) revert ZeroAddress();
         imd = IERC20(imd_);
+        imdPoolSet = false;
+        delete _imdPoolKey;
         emit ImdSet(imd_);
     }
 
+    /// @notice Where purchases go. Set once: the 30% PRIO and 30% IMD allocations cannot be redirected later.
     function setSinks(address stakingVault_, address arena_, address oracleAdapter_) external onlyOwner {
+        if (stakingVault != address(0)) revert AlreadySet();
+        if (stakingVault_ == address(0) || arena_ == address(0) || oracleAdapter_ == address(0)) revert ZeroAddress();
         stakingVault = stakingVault_;
         arena = arena_;
         oracleAdapter = oracleAdapter_;
@@ -155,6 +178,19 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
     function setMaxSpendPerSwap(uint256 maxSpend) external onlyOwner {
         maxSpendPerSwap = maxSpend;
         emit MaxSpendSet(maxSpend);
+    }
+
+    function setSpendPerWindow(uint256 perWindow) external onlyOwner {
+        spendPerWindow = perWindow;
+        emit SpendPerWindowSet(perWindow);
+    }
+
+    /// @notice Minimum token units per ETH a purchase must return, whatever `minOut` the executor passes. The
+    /// owner keeps these a little below the market price; a floor above the market refuses purchases (safe).
+    function setPriceFloors(uint256 minPrioPerEth_, uint256 minImdPerEth_) external onlyOwner {
+        minPrioPerEth = minPrioPerEth_;
+        minImdPerEth = minImdPerEth_;
+        emit PriceFloorsSet(minPrioPerEth_, minImdPerEth_);
     }
 
     /// @notice The Uniswap v4 pool where IMD trades against ETH (ETH must be currency0).
@@ -215,43 +251,61 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
 
     // ------------------------------------------------------------------ purchases (executor)
 
-    /// @notice Buys PRIO on the hooked pool with `ethIn` from the PRIO budget and splits it 50/50.
+    /// @notice Buys PRIO on the hooked pool with up to `ethIn` from the PRIO budget and splits it 50/50.
+    /// @return out PRIO bought. Only the ETH the pool actually took leaves `prioBudget`.
     function buyPrio(uint256 ethIn, uint256 minPrioOut) external nonReentrant returns (uint256 out) {
         if (msg.sender != executor) revert NotExecutor();
         if (hook == address(0) || address(prio) == address(0)) revert NotConfigured("prio");
         if (stakingVault == address(0) || arena == address(0)) revert NotConfigured("sinks");
-        if (ethIn > maxSpendPerSwap) revert ExceedsMaxSpend();
+        if (minPrioPerEth == 0) revert NotConfigured("prio price floor");
         if (ethIn == 0 || ethIn > prioBudget) revert ExceedsBudget();
         prioBudget -= ethIn;
-        out = _swapEthFor(IFeeHook(hook).poolKey(), ethIn, minPrioOut);
+        uint256 spent;
+        (out, spent) = _swapEthFor(IFeeHook(hook).poolKey(), ethIn, minPrioOut, minPrioPerEth);
+        prioBudget += ethIn - spent;
         uint256 toStaking = out / 2;
         uint256 toArena = out - toStaking;
         prio.forceApprove(stakingVault, toStaking);
         IRewardSink(stakingVault).notifyReward(toStaking);
         prio.forceApprove(arena, toArena);
         IPrizeSink(arena).fundPrizes(toArena);
-        emit PrioBought(ethIn, out, toStaking, toArena);
+        emit PrioBought(spent, out, toStaking, toArena);
     }
 
-    /// @notice Buys IMD for agent work with `ethIn` from the IMD budget and hands it to the OracleAdapter.
+    /// @notice Buys IMD for agent work with up to `ethIn` from the IMD budget and hands it to the OracleAdapter.
     function buyImd(uint256 ethIn, uint256 minImdOut) external nonReentrant returns (uint256 out) {
         if (msg.sender != executor) revert NotExecutor();
         if (!imdPoolSet) revert NotConfigured("imd pool");
+        if (Currency.unwrap(_imdPoolKey.currency1) != address(imd)) revert PoolMismatch();
         if (oracleAdapter == address(0)) revert NotConfigured("oracle adapter");
-        if (ethIn > maxSpendPerSwap) revert ExceedsMaxSpend();
+        if (minImdPerEth == 0) revert NotConfigured("imd price floor");
         if (ethIn == 0 || ethIn > imdBudget) revert ExceedsBudget();
         imdBudget -= ethIn;
-        out = _swapEthFor(_imdPoolKey, ethIn, minImdOut);
+        uint256 spent;
+        (out, spent) = _swapEthFor(_imdPoolKey, ethIn, minImdOut, minImdPerEth);
+        imdBudget += ethIn - spent;
         imd.safeTransfer(oracleAdapter, out);
-        emit ImdBought(ethIn, out);
+        emit ImdBought(spent, out);
     }
 
     // ------------------------------------------------------------------ swap plumbing
 
-    function _swapEthFor(PoolKey memory key, uint256 ethIn, uint256 minOut) internal returns (uint256 out) {
+    /// @dev Bounds the spend per call and per rolling window on what was actually spent, and checks both the
+    /// executor's `minOut` and the owner's price floor (scaled to the ETH actually spent).
+    function _swapEthFor(PoolKey memory key, uint256 ethIn, uint256 minOut, uint256 floorPerEth)
+        internal
+        returns (uint256 out, uint256 spent)
+    {
+        if (ethIn > maxSpendPerSwap) revert ExceedsMaxSpend();
+        if (block.timestamp >= windowStart + SPEND_WINDOW) {
+            windowStart = block.timestamp;
+            spentInWindow = 0;
+        }
+        if (spentInWindow + ethIn > spendPerWindow) revert ExceedsWindow();
         bytes memory result = poolManager.unlock(abi.encode(key, ethIn));
-        out = abi.decode(result, (uint256));
-        if (out < minOut) revert Slippage();
+        (out, spent) = abi.decode(result, (uint256, uint256));
+        spentInWindow += spent;
+        if (out < minOut || out < (spent * floorPerEth) / ONE) revert Slippage();
     }
 
     function unlockCallback(bytes calldata data) external returns (bytes memory) {
@@ -266,11 +320,11 @@ contract FeeTreasury is IUnlockCallback, TwoStepOwned, ReentrancyGuard {
         );
         uint256 owed = uint256(uint128(-delta.amount0()));
         uint256 out = uint256(uint128(delta.amount1()));
-        // The hook's 0.5% is inside `owed`; a bounded spend never exceeds the budget line.
+        // The hook's 0.5% is inside `owed`; a partial fill leaves `owed < ethIn`, credited back by the caller.
         if (owed > ethIn) revert ExceedsBudget();
         poolManager.settle{value: owed}();
         poolManager.take(key.currency1, address(this), out);
-        return abi.encode(out);
+        return abi.encode(out, owed);
     }
 
     function _send(address payable to, uint256 amount) internal {

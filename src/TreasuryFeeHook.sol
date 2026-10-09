@@ -12,19 +12,26 @@ import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {ModifyLiquidityParams, SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {TwoStepOwned} from "./TwoStepOwned.sol";
 
 /// @title TreasuryFeeHook: an immutable extra 0.5% ETH fee on every buy and sell in the ETH/PRIO pool
 /// @notice The hook charges `FEE_BPS` (50 bps, 0.5%) of the ETH leg of each swap in its one pool, on top of the
 /// pool's LP fee and the platform's own fees, which the PoolManager accounts separately. The fee is always
-/// taken on the ETH side, never in PRIO:
-///   - buy, exact input  (ETH specified):  taken in `beforeSwap` from the ETH input; the pool swaps the rest.
+/// taken on the ETH side, never in PRIO, and always on the ETH amount the pool *actually* exchanged:
+///   - buy, exact input  (ETH specified):  `beforeSwap` runs the pool leg itself (a nested `swap` by the
+///     hook, which the PoolManager does not re-hook), learns how much ETH the pool took, charges 0.5% of
+///     that and hands the swapper the PRIO through the before-swap delta. A full fill costs exactly the
+///     ETH the swapper specified; a partial fill (price limit or liquidity exhausted) costs the filled leg
+///     plus 0.5% of it, and the rest stays with the swapper.
 ///   - buy, exact output (PRIO specified): taken in `afterSwap` on top of the ETH the pool charged.
 ///   - sell, exact input (PRIO specified): taken in `afterSwap` out of the ETH the pool paid.
-///   - sell, exact output (ETH specified): taken in `beforeSwap` by asking the pool for more ETH, so the
-///     swapper still receives exactly the ETH it asked for.
-/// In every case the fee is 0.5% of the ETH amount the pool itself exchanged ("the ETH leg"), rounded up to
-/// the next wei, so it never compounds with itself or with LP and protocol fees.
+///   - sell, exact output (ETH specified): `beforeSwap` runs the pool leg itself for the asked ETH plus
+///     the fee; a full fill pays the swapper exactly the ETH asked, a partial fill pays the filled leg
+///     minus 0.5% of it. The swapper never pays ETH on a sell.
+/// In every case the fee is 0.5% of the ETH leg, rounded up to the next wei, so it never compounds with
+/// itself or with LP and protocol fees.
 ///
 /// Delivery: when the PoolManager already holds enough ETH the fee is taken as native ETH into this contract
 /// and forwarded to the bound `FeeTreasury` in the same swap. When it does not (a fresh pool seeded with
@@ -37,6 +44,8 @@ import {TwoStepOwned} from "./TwoStepOwned.sol";
 contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
     using CurrencyLibrary for Currency;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
+    using SafeCast for uint256;
+    using StateLibrary for IPoolManager;
 
     // ------------------------------------------------------------------ constants
 
@@ -87,9 +96,11 @@ contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
     error DynamicFeeNotAllowed();
     error TreasuryAlreadyBound();
     error TreasuryNotBound();
+    error TreasuryMismatch();
     error ZeroAddress();
     error HookNotImplemented();
     error NothingToRedeem();
+    error SwapTooSmall();
 
     modifier onlyPoolManager() {
         if (msg.sender != address(poolManager)) revert NotPoolManager();
@@ -143,15 +154,17 @@ contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
         return (ethLeg * FEE_BPS + (BPS - 1)) / BPS;
     }
 
-    /// @notice For a buy with exact ETH input `grossIn`: the fee taken and the ETH the pool will swap.
+    /// @notice For a buy with exact ETH input `grossIn` that fills completely: the fee taken and the ETH the
+    /// pool swaps. On a partial fill the fee is `feeOnLeg(filled leg)` instead and the swapper keeps the rest.
     /// @dev fee = 0.5% of the pool leg, so pool leg = grossIn / 1.005 and fee = grossIn - poolLeg,
-    /// computed as ceil(grossIn * 50 / 10050).
+    /// computed as ceil(grossIn * 50 / 10050). `poolLeg == 0` (a 1-wei buy) cannot be swapped and is refused.
     function quoteBuyExactInput(uint256 grossIn) public pure returns (uint256 fee, uint256 poolLeg) {
         fee = (grossIn * FEE_BPS + (BPS + FEE_BPS - 1)) / (BPS + FEE_BPS);
         poolLeg = grossIn - fee;
     }
 
-    /// @notice For a sell with exact ETH output `netOut`: the fee and the ETH the pool must pay out.
+    /// @notice For a sell with exact ETH output `netOut` that fills completely: the fee and the ETH the pool
+    /// pays out. On a partial fill the fee is `feeOnLeg(filled leg)` and the swapper receives the rest.
     /// @dev fee = 0.5% of the pool leg (netOut + fee), so fee = ceil(netOut * 50 / 9950).
     function quoteSellExactOutput(uint256 netOut) public pure returns (uint256 fee, uint256 poolLeg) {
         fee = (netOut * FEE_BPS + (BPS - FEE_BPS - 1)) / (BPS - FEE_BPS);
@@ -160,10 +173,18 @@ contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
 
     // ------------------------------------------------------------------ owner
 
-    /// @notice Binds the FeeTreasury once. Fees charged before binding wait in `pendingEth` / claims.
+    /// @notice Binds the FeeTreasury. Fees charged before binding wait in `pendingEth` / claims.
+    /// @dev The binding can be corrected by the owner until the first fee has actually been delivered to it;
+    /// from then on it is immutable. A FeeTreasury that reports another hook is refused outright (a treasury
+    /// accepts ETH only from its own bound hook, so binding it here would strand every fee).
     function bindTreasury(address payable treasury_) external onlyOwner {
-        if (treasury != address(0)) revert TreasuryAlreadyBound();
+        if (treasury != address(0) && totalFeeDelivered != 0) revert TreasuryAlreadyBound();
         if (treasury_ == address(0)) revert ZeroAddress();
+        (bool ok, bytes memory ret) = treasury_.staticcall(abi.encodeWithSignature("hook()"));
+        if (ok && ret.length == 32) {
+            address boundHook = abi.decode(ret, (address));
+            if (boundHook != address(0) && boundHook != address(this)) revert TreasuryMismatch();
+        }
         treasury = treasury_;
         emit TreasuryBound(treasury_);
     }
@@ -204,7 +225,8 @@ contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
         return "";
     }
 
-    receive() external payable {}
+    /// @dev Only the PoolManager pays ETH here (`take`). Anything else would sit outside `pendingEth` forever.
+    receive() external payable onlyPoolManager {}
 
     // ------------------------------------------------------------------ callbacks
 
@@ -222,7 +244,15 @@ contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
     }
 
     /// @dev ETH is always currency0 (address zero sorts first). ETH is the *specified* currency when
-    /// (zeroForOne && exactInput) or (!zeroForOne && exactOutput); the fee is then taken here.
+    /// (zeroForOne && exactInput) or (!zeroForOne && exactOutput). A before-swap delta can only move the
+    /// specified currency, and the fee must be 0.5% of what the pool really exchanges, which is unknown until
+    /// the pool has run. So for these two shapes the hook runs the pool leg itself: a nested
+    /// `poolManager.swap` by the hook (the PoolManager skips hook callbacks when the hook is the caller),
+    /// bounded by the swapper's own price limit less one sqrt-price unit. It then charges 0.5% of the ETH
+    /// that leg exchanged, and returns a before-swap delta that passes the PRIO side of the leg to the
+    /// swapper. On a full fill the outer swap has nothing left to do (amount zero). On a partial fill the
+    /// outer swap covers only the one remaining sqrt-price unit between the hook's limit and the swapper's,
+    /// which exchanges nothing (or at most a few wei, which carry no fee).
     function beforeSwap(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         external
         onlyPoolManager
@@ -233,17 +263,65 @@ contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
         bool ethSpecified = params.zeroForOne == exactInput;
         if (!ethSpecified) return (IHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
 
-        uint256 fee;
-        uint256 leg;
-        if (exactInput) {
-            // Buy with exact ETH in: the pool gets the input minus the fee.
-            (fee, leg) = quoteBuyExactInput(uint256(-params.amountSpecified));
-        } else {
-            // Sell with exact ETH out: the pool pays out the requested ETH plus the fee.
-            (fee, leg) = quoteSellExactOutput(uint256(params.amountSpecified));
+        BeforeSwapDelta hookDelta = exactInput
+            ? _buyExactInput(uint256(-params.amountSpecified), params.sqrtPriceLimitX96)
+            : _sellExactOutput(uint256(params.amountSpecified), params.sqrtPriceLimitX96);
+        return (IHooks.beforeSwap.selector, hookDelta, 0);
+    }
+
+    /// @dev Buy with exact ETH in `grossIn`. The hook swaps `grossIn - fee` of ETH for PRIO itself; the swapper
+    /// pays the ETH the pool took plus 0.5% of it (exactly `grossIn` on a full fill) and receives the PRIO.
+    function _buyExactInput(uint256 grossIn, uint160 limit) internal returns (BeforeSwapDelta) {
+        (uint256 fee, uint256 leg) = quoteBuyExactInput(grossIn);
+        if (leg == 0) revert SwapTooSmall();
+        (uint160 price,,,) = poolManager.getSlot0(poolId);
+        uint256 filled;
+        uint256 prioOut;
+        if (limit + 1 < price) {
+            BalanceDelta d = poolManager.swap(
+                _poolKey,
+                SwapParams({zeroForOne: true, amountSpecified: -leg.toInt256(), sqrtPriceLimitX96: limit + 1}),
+                ""
+            );
+            filled = uint256(uint128(-d.amount0()));
+            prioOut = uint256(uint128(d.amount1()));
         }
-        _collect(fee, params.zeroForOne, exactInput, leg);
-        return (IHooks.beforeSwap.selector, toBeforeSwapDelta(int128(uint128(fee)), 0), 0);
+        if (filled != leg) fee = feeOnLeg(filled);
+        if (fee != 0) _collect(fee, true, true, filled);
+        // Hook receives (filled + fee) ETH from the swapper and pays it the PRIO the pool gave.
+        return toBeforeSwapDelta((filled + fee).toInt128(), -prioOut.toInt128());
+    }
+
+    /// @dev Sell with exact ETH out `netOut`. The hook sells the swapper's PRIO for `netOut + fee` of ETH itself;
+    /// the swapper receives the ETH the pool paid minus 0.5% of it (exactly `netOut` on a full fill).
+    function _sellExactOutput(uint256 netOut, uint160 limit) internal returns (BeforeSwapDelta) {
+        (uint256 fee, uint256 leg) = quoteSellExactOutput(netOut);
+        (uint160 price,,,) = poolManager.getSlot0(poolId);
+        uint256 filled;
+        uint256 prioIn;
+        if (limit - 1 > price) {
+            BalanceDelta d = poolManager.swap(
+                _poolKey,
+                SwapParams({zeroForOne: false, amountSpecified: leg.toInt256(), sqrtPriceLimitX96: limit - 1}),
+                ""
+            );
+            filled = uint256(uint128(d.amount0()));
+            prioIn = uint256(uint128(-d.amount1()));
+        }
+        uint256 pay = netOut;
+        if (filled != leg) {
+            fee = feeOnLeg(filled);
+            pay = filled - fee;
+            // Rounding can leave the partial leg one wei over the asked amount: the swapper never gets more
+            // than it asked, so that wei stays in the fee (still "rounded up").
+            if (pay > netOut) {
+                fee += pay - netOut;
+                pay = netOut;
+            }
+        }
+        if (fee != 0) _collect(fee, false, false, filled);
+        // Hook pays the swapper `pay` ETH and receives the PRIO the pool consumed.
+        return toBeforeSwapDelta(-pay.toInt128(), prioIn.toInt128());
     }
 
     /// @dev ETH is the *unspecified* currency when (zeroForOne && exactOutput) or (!zeroForOne && exactInput);
@@ -256,6 +334,7 @@ contract TreasuryFeeHook is IHooks, IUnlockCallback, TwoStepOwned {
         _requireOwnPool(key);
         bool exactInput = params.amountSpecified < 0;
         bool ethSpecified = params.zeroForOne == exactInput;
+        // ETH-specified shapes were charged in beforeSwap on the leg the hook ran itself.
         if (ethSpecified) return (IHooks.afterSwap.selector, 0);
 
         int128 ethDelta = delta.amount0();

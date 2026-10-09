@@ -51,6 +51,22 @@ class BudgetTests(unittest.TestCase):
         self.assertTrue(out["ok"])
         self.assertTrue(out["tx"].startswith("DRY-RUN"))
 
+    def test_request_waits_for_the_commit_boundary(self):
+        self.cfg["paid_operations_enabled"] = True
+        self.cfg["contracts"]["oracle_adapter"] = "0x" + "11" * 20
+        not_before = 1_800_000_000
+        words = ["20", "aa", "01", "05", "04", f"{not_before:x}", "e0", "00"]
+        raw = "0x" + "".join(w.rjust(64, "0") for w in words)
+        with mock.patch.object(op, "cast", side_effect=lambda args, cfg, **kw: raw if not kw.get("send") else "0xtx"):
+            self.assertEqual(op.read_not_before(self.cfg, 7), not_before)
+            out = op.cmd_request_round(self.cfg, self.budget, 7, dry_run=False, now=lambda: not_before - 1)
+            self.assertFalse(out["ok"])
+            self.assertIn("still open", out["reason"])
+            self.assertEqual(self.budget.state["requests"], 0)
+            out = op.cmd_request_round(self.cfg, self.budget, 7, dry_run=False, now=lambda: not_before)
+            self.assertTrue(out["ok"])
+            self.assertEqual(self.budget.state["requests"], 1)
+
     def test_relay_dry_run_builds_tuple(self):
         att = {
             "requestId": "0x" + "01" * 32, "chainId": 1, "questionHash": "0x" + "02" * 32, "answerType": 3,

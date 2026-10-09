@@ -99,6 +99,19 @@
   },
   {
     "type": "function",
+    "name": "SPEND_WINDOW",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "acceptOwnership",
     "inputs": [],
     "outputs": [],
@@ -305,6 +318,32 @@
   },
   {
     "type": "function",
+    "name": "minImdPerEth",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "minPrioPerEth",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "oracleAdapter",
     "inputs": [],
     "outputs": [
@@ -491,6 +530,24 @@
   },
   {
     "type": "function",
+    "name": "setPriceFloors",
+    "inputs": [
+      {
+        "name": "minPrioPerEth_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minImdPerEth_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setPrio",
     "inputs": [
       {
@@ -537,6 +594,45 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSpendPerWindow",
+    "inputs": [
+      {
+        "name": "perWindow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "spendPerWindow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "spentInWindow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -608,6 +704,19 @@
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "windowStart",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -862,6 +971,25 @@
   },
   {
     "type": "event",
+    "name": "PriceFloorsSet",
+    "inputs": [
+      {
+        "name": "minPrioPerEth",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "minImdPerEth",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "PrioBought",
     "inputs": [
       {
@@ -962,6 +1090,19 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "SpendPerWindowSet",
+    "inputs": [
+      {
+        "name": "perWindow",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AlreadySet",
     "inputs": []
@@ -974,6 +1115,11 @@
   {
     "type": "error",
     "name": "ExceedsMaxSpend",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ExceedsWindow",
     "inputs": []
   },
   {
@@ -1028,6 +1174,11 @@
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "PoolMismatch",
+    "inputs": []
   },
   {
     "type": "error",

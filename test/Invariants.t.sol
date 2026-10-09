@@ -82,7 +82,18 @@ contract Handler is Test {
 }
 
 contract MockOracle is IRoundOracle {
+    uint64 public notBefore;
+
+    function pin(uint64 boundary) external {
+        notBefore = boundary;
+    }
+
     function resultOf(uint256) external pure returns (Result memory r) {}
+
+    function pinned(uint256) external view returns (Pinned memory p) {
+        p.questionHash = keccak256("question");
+        p.notBefore = notBefore;
+    }
 
     function ISSUED_AT_TOLERANCE() external pure returns (uint64) {
         return 5 minutes;
@@ -100,13 +111,15 @@ contract InvariantsTest is Test {
         token = new PrismRiotToken();
         vault = new StakingVault(address(this), address(token));
         arena = new Arena(address(this), address(token));
-        arena.setOracle(IRoundOracle(address(new MockOracle())));
+        MockOracle oracle = new MockOracle();
+        arena.setOracle(IRoundOracle(address(oracle)));
         handler = new Handler(token, vault, arena);
         token.transfer(address(handler), 1_000_000 ether);
         handler.seedUsers();
         vault.setRewardFunder(address(handler));
         token.approve(address(arena), 10_000 ether);
         arena.fundPrizes(10_000 ether);
+        oracle.pin(uint64(block.timestamp + 5 days));
         uint256 id = arena.createRound(
             Arena.Mode.VaultRaid,
             4,

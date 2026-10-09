@@ -13,6 +13,10 @@ import {TwoStepOwned} from "./TwoStepOwned.sol";
 /// There is no APY, no minting and no accrual against tokens the vault does not hold: a notification is
 /// refused unless the vault's balance minus all principal covers every reward still owed.
 ///
+/// The stream pauses while nothing is staked: seconds with `totalStaked == 0` do not consume the schedule,
+/// `periodFinish` moves forward by exactly that idle time, and the whole funded amount is still paid to
+/// whoever stakes later. Nothing funded is ever streamed to nobody.
+///
 /// Principal is isolated: `totalStaked` is never spent on rewards, games or operations, and `withdraw()`
 /// always returns exactly what was staked.
 contract StakingVault is TwoStepOwned, ReentrancyGuard {
@@ -78,8 +82,9 @@ contract StakingVault is TwoStepOwned, ReentrancyGuard {
     }
 
     function rewardPerToken() public view returns (uint256) {
-        if (totalStaked == 0) return rewardPerTokenStored;
-        return rewardPerTokenStored + ((lastTimeRewardApplicable() - lastUpdateTime) * rewardRate) / totalStaked;
+        uint256 applicable = lastTimeRewardApplicable();
+        if (totalStaked == 0 || applicable <= lastUpdateTime) return rewardPerTokenStored;
+        return rewardPerTokenStored + ((applicable - lastUpdateTime) * rewardRate) / totalStaked;
     }
 
     function earned(address account) public view returns (uint256) {
@@ -149,9 +154,21 @@ contract StakingVault is TwoStepOwned, ReentrancyGuard {
         emit RewardNotified(amount, rewardRate, periodFinish);
     }
 
+    /// @dev With stakers: fold the elapsed stream into the accumulator. Without stakers: the elapsed time is
+    /// idle, so the remaining schedule (`periodFinish - lastUpdateTime`) is shifted forward unchanged.
     function _update(address account) internal {
-        rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = lastTimeRewardApplicable();
+        if (totalStaked == 0) {
+            if (periodFinish > lastUpdateTime) {
+                // A stream with time left: carry the remaining seconds forward untouched.
+                periodFinish += block.timestamp - lastUpdateTime;
+                lastUpdateTime = block.timestamp;
+            } else {
+                lastUpdateTime = lastTimeRewardApplicable();
+            }
+        } else {
+            rewardPerTokenStored = rewardPerToken();
+            lastUpdateTime = lastTimeRewardApplicable();
+        }
         if (account != address(0)) {
             rewards[account] = earned(account);
             userRewardPerTokenPaid[account] = rewardPerTokenStored;

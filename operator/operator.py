@@ -157,16 +157,31 @@ def cmd_quote(cfg: dict[str, Any], http: Http, action: str, body: dict, **_: Any
     return http.call("POST", cfg["paths"]["quote"], {"action": action, "body": body})
 
 
-def cmd_request_round(cfg: dict[str, Any], budget: Budget, round_id: int, dry_run: bool, **_: Any) -> dict:
+def read_not_before(cfg: dict[str, Any], round_id: int, caller=None) -> int:
+    """The round's commit boundary from ``OracleAdapter.pinned(roundId)``: word 5 of the ABI-encoded tuple
+    (offset, questionHash, chainId, minPanel, minQuorum, notBefore, ...)."""
+    raw = (caller or cast)([cfg["contracts"]["oracle_adapter"], "pinned(uint256)", str(round_id)], cfg)
+    words = raw[2:] if raw.startswith("0x") else raw
+    if len(words) < 6 * 64:
+        raise RuntimeError("pinned(roundId) returned too little data; is the question pinned?")
+    return int(words[5 * 64 : 6 * 64], 16)
+
+
+def cmd_request_round(cfg: dict[str, Any], budget: Budget, round_id: int, dry_run: bool, now=time.time, **_: Any) -> dict:
     """Pays for a panel answer on chain through ``OracleAdapter.request(roundId)``.
 
-    The adapter itself enforces the owner's on-chain budget; this is the operator's own, tighter cap.
+    The adapter itself enforces the owner's on-chain budget and refuses before the round's commit boundary;
+    this is the operator's own, tighter cap plus the same timing guard, so no IMD is spent on a reverting call.
     """
     require_enabled(cfg)
     price = int(cfg["budget"]["oracle_price_imd"])  # the Intake's list price; read it with Intake.priceOf
     ok, why = budget.allow(imd_wei=price, gas_wei=int(2e15), requests=1)
     if not ok:
         return {"ok": False, "reason": why}
+    if not dry_run:
+        not_before = read_not_before(cfg, round_id)
+        if int(now()) < not_before:
+            return {"ok": False, "reason": f"round {round_id} is still open for commitments until {not_before}"}
     tx = cast([cfg["contracts"]["oracle_adapter"], "request(uint256)", str(round_id)], cfg, send=True, dry_run=dry_run)
     if not dry_run:
         budget.record(imd_wei=price, gas_wei=int(2e15), requests=1)

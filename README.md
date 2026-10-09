@@ -17,9 +17,10 @@ Everything is owned by the paying wallet through two-step ownership that cannot 
 
 ## Status and honesty about deployment
 
-- `forge build`, `forge test` (54 tests: unit, fuzz, invariant, deploy rehearsal) and
+- `forge build`, `forge test` (78 tests: unit, fuzz, invariant, deploy rehearsal) and
   `forge fmt --check` pass with `solc = "0.8.26"`. The IMD protected floor tests for the token and the
-  hook were rehearsed locally against the built bytecode and pass (11/11).
+  hook were rehearsed locally against the built bytecode and pass (11/11). The independent reviewer's
+  four proof tests from the first review round pass on this tree (see `docs/REVIEW.md`, round 2).
 - **No contract has been deployed.** This assignment does not control a funded wallet or keys; the
   IMD launch's manifest step deploys from the bytecode and records the addresses and receipts. The
   prior attempt (job `bbf45a6b`) never broadcast a transaction, so there is nothing on chain to
@@ -73,16 +74,17 @@ that emits an event, and every function that needs a value reverts with a clear 
 
 | Step | Call | Value |
 | --- | --- | --- |
-| 1 | `TreasuryFeeHook.bindTreasury(treasury)` | the launched `FeeTreasury` (one-time; fees charged before binding wait in the hook and are flushed by anyone with `flush()` / `redeemClaims()`) |
-| 2 | `FeeTreasury.bindHook(hook)` / `setPrio(token)` | the launched hook and token (one-time each) |
+| 1 | `FeeTreasury.bindHook(hook)` / `setPrio(token)` | the launched hook and token (one-time each) |
+| 2 | `TreasuryFeeHook.bindTreasury(treasury)` | the launched `FeeTreasury`, after step 1 (a treasury bound to another hook is refused). Correctable by the owner until the first fee has been delivered, immutable afterwards. Fees charged before binding wait in the hook and are flushed by anyone with `flush()` / `redeemClaims()` |
 | 3 | `StakingVault.setRewardFunder(treasury)` | the treasury, so `buyPrio` can stream rewards |
-| 4 | `Arena.setOracle(adapter)` | the launched `OracleAdapter` |
-| 5 | `FeeTreasury.setSinks(vault, arena, adapter)` | the three launched contracts |
+| 4 | `Arena.setOracle(adapter)` | the launched `OracleAdapter` (applies to rounds created afterwards; a round keeps the adapter it was created with) |
+| 5 | `FeeTreasury.setSinks(vault, arena, adapter)` | the three launched contracts, one-time: the 30% PRIO / 30% IMD allocations cannot be redirected later |
 | 6 | `FeeTreasury.setExecutor(wallet)` / `OracleAdapter.setExecutor(wallet)` | the server operator's wallet |
-| 7 | `FeeTreasury.setReserveTarget(x)` | default 0.5 ETH, hard cap 2 ETH; `setMaxSpendPerSwap` default 1 ETH |
-| 8 | `FeeTreasury.setImd(0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7)` then `setImdPool(fee, tickSpacing, hooks)` | IMD on Ethereum (oracle-consumer skill) and the Uniswap v4 pool key where IMD trades against ETH (the owner finds it on the IMD explorer; ETH must be `currency0`). Without it IMD purchases wait; PRIO purchases do not depend on it |
-| 9 | `OracleAdapter.setIntake(0x1397434cd35e8a9c8ac312a61d3a285eb31dea56)`, `setAction(bytes32("oracle.request@oracle-1"))`, `setPayment(IMD, 500000000000000000)`, `setCallbackConfigured(true)`, `setBudget(imdPerDay)` | the live Intake, action id, 0.5 IMD list price (read `Intake.priceOf`), the explicit callback switch, the executor's daily IMD budget |
-| 10 | per round: `OracleAdapter.pinQuestion(roundId, questionHash, chainId, minPanel, minQuorum, commitDeadline, body)` then `Arena.createRound(...)` | the question's canonical hash and compact body (oracle-consumer skill "The body"), chain the question is about, minimum panel/quorum, and the round's commit deadline as the clock boundary |
+| 7 | `FeeTreasury.setReserveTarget(x)`, `setMaxSpendPerSwap(y)`, `setSpendPerWindow(z)` | reserve target default 0.5 ETH, hard cap 2 ETH; per-purchase cap default 1 ETH; per-rolling-day cap across both purchases, default 1 ETH |
+| 8 | `FeeTreasury.setPriceFloors(minPrioPerEth, minImdPerEth)` | **required before any purchase**: the minimum PRIO (resp. IMD) units per ETH a purchase must return, 18 decimals, e.g. 10% below the current pool price. The owner re-sets them when prices move; a floor above the market makes purchases revert, never overpay |
+| 9 | `FeeTreasury.setImd(0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7)` then `setImdPool(fee, tickSpacing, hooks)` | IMD on Ethereum (oracle-consumer skill) and the Uniswap v4 pool key where IMD trades against ETH (the owner finds it on the IMD explorer; ETH must be `currency0`). Calling `setImd` again unsets the pool key. Without it IMD purchases wait; PRIO purchases do not depend on it |
+| 10 | `OracleAdapter.setIntake(0x1397434cd35e8a9c8ac312a61d3a285eb31dea56)`, `setAction(bytes32("oracle.request@oracle-1"))`, `setPayment(IMD, 500000000000000000)`, `setCallbackConfigured(true)`, `setBudget(imdPerDay)` | the live Intake, action id, 0.5 IMD list price (read `Intake.priceOf`), the explicit callback switch, the executor's daily IMD budget |
+| 11 | per round: `OracleAdapter.pinQuestion(Arena.roundCount() + 1, questionHash, chainId, minPanel, minQuorum, commitDeadline, body)` **then** `Arena.createRound(...)` with the same `commitDeadline` | the question's canonical hash and compact body (oracle-consumer skill "The body"), chain the question is about, minimum panel/quorum, and the round's commit deadline as the clock boundary. `createRound` refuses a round whose question is not pinned at exactly that boundary, and records the adapter, the question hash and the signer pinned with it |
 
 ## The hook
 
@@ -101,7 +103,8 @@ Configuration record (OpenZeppelin Wizard shape, implemented by hand on v4-core 
 **Fee definition.** `FEE_BPS = 50` (0.5%), a constant with no setter. The base is the *ETH leg*: the
 ETH amount the pool itself exchanges in the swap, before the hook's fee is added, so the hook fee
 never compounds with itself nor with the pool's 1.25% LP fee or the protocol fee, which the
-PoolManager accounts separately. Rounded up to the next wei. Per swap shape:
+PoolManager accounts separately. Rounded up to the next wei. Per swap shape, for a swap the pool fills
+completely:
 
 | Swap | Where | Fee | Swapper's view |
 | --- | --- | --- | --- |
@@ -110,8 +113,24 @@ PoolManager accounts separately. Rounded up to the next wei. Per swap shape:
 | sell, exact PRIO in | `afterSwap` | `ceil(P·50/10000)` on the pool's ETH payout `P` | receives `P − fee` |
 | sell, exact ETH out `E` | `beforeSwap` | `ceil(E·50/9950)`; pool pays `E + fee` | receives exactly `E` |
 
-Views for quoting: `feeOnLeg`, `quoteBuyExactInput`, `quoteSellExactOutput`. A 1-wei buy cannot
-execute (the whole wei is fee and the pool refuses a zero swap); every larger amount works.
+**Partial fills (ETH-specified shapes).** A before-swap delta can only touch the specified currency
+and the fee must be 0.5% of what the pool *really* exchanges, which is unknown until the pool has run.
+So for the two ETH-specified shapes `beforeSwap` runs the pool leg itself: a nested `swap` by the hook
+(the PoolManager skips hook callbacks when the hook is the caller), with the swapper's own
+`sqrtPriceLimitX96` less one sqrt-price unit. It reads the ETH the pool actually took or paid, charges
+0.5% of that (the full-fill quote above when the leg filled completely, so a full fill costs exactly
+the specified amount), and passes the PRIO side of the leg to the swapper through the before-swap
+delta. On a full fill the outer swap has an amount of zero and does nothing. On a partial fill (price
+limit reached or liquidity exhausted) the swapper pays `filled + ceil(filled·50/10000)` on a buy and
+receives `filled − ceil(filled·50/10000)` on a sell, keeps or is owed nothing else, and the outer swap
+only covers the last sqrt-price unit, which exchanges nothing or a few wei (fee-free). A seller never
+pays ETH. Two `Swap` events appear per such swap (the hook's leg and the router's remainder). Tested in
+`TreasuryFeeHookPartialFillTest` for both directions, with a liquidity-exhausted thin pool and with a
+router price limit 0.5% from spot, plus a fuzz over amounts.
+
+Views for quoting a full fill: `feeOnLeg`, `quoteBuyExactInput`, `quoteSellExactOutput`. Wei level: a
+1-wei buy is refused (`SwapTooSmall`: the whole wei would be fee and nothing would be left to swap);
+from 2 wei up the fee is `max(1, ceil(leg·0.005))` wei, so inputs of 2–201 wei pay a 1-wei fee.
 
 **Settlement in ETH.** The fee is always ETH, taken inside the swap that paid it. When the PoolManager
 holds at least the fee in ETH, the hook `take`s it to itself and forwards it to the bound treasury in
@@ -121,17 +140,21 @@ see no ETH in the manager), the hook mints itself an ERC-6909 ETH claim; anyone 
 Both paths are tested (`TreasuryFeeHookTest`, `TreasuryFeeHookClaimsTest`). If the treasury ever
 refused ETH the hook keeps the ETH in `pendingEth` and `flush()` retries later; a swap is never
 reverted because of fee delivery, and the fee is never dropped. `FeeTreasury.receive` only accepts
-ETH from the hook.
+ETH from the hook, and the hook's `receive` only accepts ETH from the PoolManager, so every wei the hook
+holds is fee ETH mirrored in `pendingEth`.
 
 **Pool binding.** `beforeInitialize` accepts one pool only, from the factory: ETH as `currency0`,
 PRIO (the `$token` constructor argument) as `currency1`, this hook, any static LP fee. The
 `PoolKey` is recorded; swaps on any other key revert, and a second initialization reverts.
 Ordinary PRIO transfers and other pools carry no fee.
 
-**Quote tick limits.** The hook does not alter `sqrtPriceLimitX96` and does not override the LP fee.
-Routers quote with the hook (the v4 Quoter simulates hook deltas) and set their own price limit; the
-ETH leg used for the fee is whatever the pool exchanged within that limit, so a partially filled
-swap pays 0.5% of the partial leg. The treasury's own buys use the full range limit and a `minOut`.
+**Quote tick limits.** The hook does not override the LP fee. Routers quote with the hook (the v4
+Quoter simulates hook deltas, nested swap included) and set their own price limit; the pool stops at
+exactly that limit, and the ETH leg used for the fee is whatever the pool exchanged within it, so a
+partially filled swap pays 0.5% of the partial leg (see "Partial fills"). A limit within one
+sqrt-price unit of spot exchanges at most a few wei and pays no fee. The treasury's own buys use the
+full range limit, a `minOut` and the owner's price floor, and credit any unfilled ETH back to the
+budget.
 
 **Compatibility.** Tested against v4-core's `PoolManager`, `PoolSwapTest` and
 `PoolModifyLiquidityTest` routers (the production manager and its reference routers), with the pool
@@ -147,13 +170,18 @@ tests (mined flags, callback refusal, initialization from the factory probe, no 
   cap `MAX_RESERVE_TARGET = 2 ETH`: a finite, documented reserve.
 - `withdrawReserve` (owner or executor) pays the operator wallet's gas from the reserve only: the
   fee-funded gas bootstrap. `withdrawOwner` is capped by `ownerBudget`.
-- `buyPrio(ethIn, minOut)` (executor): bounded by `prioBudget` and `maxSpendPerSwap`, swaps ETH→PRIO on
-  the hooked pool through the PoolManager (paying the 0.5% back to itself), checks `minOut`, then sends
-  half to `StakingVault.notifyReward` and half to `Arena.fundPrizes`. Works with no IMD configuration.
-- `buyImd(ethIn, minOut)` (executor): same bounds on `imdBudget`, on the owner-set IMD pool, output to
-  the `OracleAdapter`.
+- `buyPrio(ethIn, minOut)` (executor): bounded by `prioBudget`, `maxSpendPerSwap` per call and
+  `spendPerWindow` per rolling day (shared with `buyImd`), swaps ETH→PRIO on the hooked pool through
+  the PoolManager (paying the 0.5% back to itself), checks `minOut` **and** the owner's `minPrioPerEth`
+  floor on the ETH actually spent, then sends half to `StakingVault.notifyReward` and half to
+  `Arena.fundPrizes`. Works with no IMD configuration. If the pool fills only part of `ethIn`, only the
+  filled ETH leaves the budget: `balance == unallocated + reserve + imdBudget + prioBudget + ownerBudget`
+  holds after every call (tested).
+- `buyImd(ethIn, minOut)` (executor): same bounds on `imdBudget` and the `minImdPerEth` floor, on the
+  owner-set IMD pool (whose `currency1` must be the configured IMD), output to the `OracleAdapter`.
 - Swaps are executor-gated because a permissionless swap with a caller-chosen `minOut` would be a
-  sandwich target; allocation, flushing and claims are permissionless.
+  sandwich target; the window cap and price floors bound what a stolen executor key can do (at most
+  `spendPerWindow` per day, never below the floor); allocation, flushing and claims are permissionless.
 
 ## StakingVault
 
@@ -161,9 +189,13 @@ Synthetix-style streaming: `notifyReward(amount)` (treasury or owner) pulls PRIO
 linearly over `rewardsDuration` (default 30 days, owner-settable 1–365 days for *future*
 notifications; an active stream keeps its schedule, and leftover rolls into the next). Rewards accrue
 pro rata to `staked[user] × time`. When `periodFinish` passes accrual stops until the next funding.
-A notification is refused unless `balance − totalStaked ≥ rewardsOwed`, so no unfunded accrual, no
-APY, no minting. Principal is isolated: `totalStaked` is never spent, `withdraw` returns exactly the
-stake, and the invariant test checks `balance ≥ totalStaked + rewardsOwed` under random actions.
+**The stream pauses while nothing is staked**: seconds with `totalStaked == 0` are not consumed,
+`periodFinish` moves forward by exactly the idle time, and the whole funded amount is still paid to
+whoever stakes later (the treasury's first purchase typically arrives before the first staker). A
+notification is refused unless `balance − totalStaked ≥ rewardsOwed`, so no unfunded accrual, no
+APY, no minting, and nothing funded is streamed to nobody. Principal is isolated: `totalStaked` is
+never spent, `withdraw` returns exactly the stake, and the invariant test checks
+`balance ≥ totalStaked + rewardsOwed` under random actions.
 
 ## Arena
 
@@ -185,14 +217,22 @@ Arena never touches staking principal (a separate contract).
 - **Winning choice** = `(oracle answer mod choiceCount) + 1`, from the `OracleAdapter` result for the
   round's pinned question. No result, no settlement.
 - **Frozen before entry.** `createRound` locks the prize from the funded game pool and fixes mode,
-  choices, deadlines, threshold and `rulesHash` (hash of the published rules text). There is no edit.
+  choices, deadlines, threshold, `rulesHash` (hash of the published rules text), **and the result
+  source**: the adapter address and the question hash pinned there for this round id, whose
+  `notBefore` must equal the round's commit deadline (`QuestionNotPinned` otherwise). `settle` and
+  `cancel` read the round's own adapter, so `Arena.setOracle` only affects later rounds; the adapter
+  keeps a pinned question and the signer pinned with it immutable, so `setSigner` only affects later
+  pins. There is no edit.
 - **Commit-reveal.** `enter(roundId, keccak256(abi.encode(roundId, player, choice, salt)))` before
   `commitDeadline`; `reveal(roundId, choice, salt)` between `commitDeadline` and `revealDeadline`.
   Players must back up their salt; a lost salt is a missed reveal (80 back).
-- **Settlement** (`settle`, anyone, after `revealDeadline`) is O(1): tallies are counted at reveal.
-  The result's `issuedAt + 5 minutes` must be ≥ `commitDeadline`, the same tolerance the adapter uses.
-- **Cancellation** (`cancel`, anyone) when no valid result exists 72 hours after `resultDeadline`:
-  prize back to the pool, every entry refundable at 102 PRIO.
+- **Settlement** (`settle`, anyone, after `revealDeadline`, no upper bound) is O(1): tallies are counted
+  at reveal. The result's `issuedAt + 5 minutes` must be ≥ `commitDeadline`, the same tolerance the
+  adapter uses (and the adapter stores nothing before `commitDeadline` on the chain clock).
+- **Cancellation** (`cancel`, anyone) 72 hours after `resultDeadline` **only while the round is
+  unresolved** (`resolved(roundId)` is false: no valid result on file at the round's adapter): prize
+  back to the pool, every entry refundable at 102 PRIO. A round with a result on file can only be
+  settled, so the two outcomes never compete; a result relayed after a cancellation changes nothing.
 - **Pull claims by round:** `claim(roundId)` / `refund(roundId)`; old rounds stay claimable forever.
 - **Game-pool allocations.** Entry fees, penalties and prize dust go to `unallocatedPrizePool`, which
   funds future prizes together with the treasury's PRIO purchases. Prizes of rounds with no correct
@@ -208,19 +248,23 @@ Arena never touches staking principal (a separate contract).
 
 Inherits the protocol's `OracleAttestationConsumer` (copied from the oracle-consumer skill; the
 conformance vector test passes). Per round the owner pins the question hash, the chain the question
-is about, minimum panel and quorum, the body and `notBefore` (the commit deadline). An attestation is
-accepted only if it is signed by the trusted signer in **this contract's** EIP-712 domain, not expired,
-`issuedAt ≤ now + 5 min`, `issuedAt + 5 min ≥ notBefore` (clock tolerance consistent with the Arena's
-settle check), question hash and chain match, `panelSize ≥ minPanel`, `quorum ≥ minQuorum`,
+is about, minimum panel and quorum, the body and `notBefore` (the commit deadline); the trusted signer
+at that moment is recorded with the pin. An attestation is accepted only if `block.timestamp ≥
+notBefore` (nothing is on chain while the Arena still accepts commitments), it is signed by the
+**pinned** signer in **this contract's** EIP-712 domain, not expired, `issuedAt ≤ now + 5 min`,
+`issuedAt + 5 min ≥ notBefore` (signer clock-skew tolerance, consistent with the Arena's settle
+check), question hash and chain match, `panelSize ≥ minPanel`, `quorum ≥ minQuorum`,
 `agreed ≥ quorum`, the answer is a `uint256`, and `requestId` was not consumed. The stored `Result`
 carries the answer and the evidence reference (request id, panel job id, block window and hash).
 
 Two paths in: the Intake's callback `onOracleResult` (only from the configured intake, only for a
 request this contract made, under the 200 000 gas stipend, tested) and the permissionless manual
 relay `submitAttestation`. Paid requests (`request(roundId)`, executor only) are disabled until
-intake, action, asset+price, callback switch, executor and budget are set and the contract holds IMD;
-`clearStale` forgets a request after 2 days (a refused or non-agreeing panel never calls back and the
-price is spent).
+intake, action, asset+price, callback switch, executor and budget are set and the contract holds IMD,
+and refused before the round's `notBefore` (an answer bought while commitments are open could leak or
+be wasted); `clearStale` forgets a request after 2 days (a refused or non-agreeing panel never calls
+back and the price is spent). `withdrawToken` returns stray tokens but never the configured payment
+asset: the IMD bought for agent work stays for panel answers.
 
 ## Server operator
 
@@ -234,6 +278,16 @@ stay server-side. Agent outputs are proposals only.
 Nothing extra was asked of the token itself; the fee lives in the hook as the launch requires. The
 launch also fixes the supply split, so no contract here receives tokens at launch; the vault, arena and
 treasury hold only what users and purchases put in afterwards.
+
+## Trust assumptions (owner powers that remain)
+
+The paying wallet owns the project. Beyond the immutable parts (the 0.5% fee, an open round's rules,
+oracle, question and reserved payouts, the one-shot hook/prio/sink bindings, the funded-only reward
+stream), the owner still decides: the reserve target and purchase caps, the price floors (a floor above
+the market pauses purchases), the IMD token and venue (`setImd`/`setImdPool`), the oracle payment
+asset and price (`setPayment`; renaming the asset would make the old one withdrawable), the signer and
+adapter for *future* rounds, the operator wallet and its budgets, and the 40% owner budget. None of
+these can reach staking principal, Arena escrow, locked prizes or an open round.
 
 ## Assumptions
 

@@ -48,6 +48,8 @@ contract ArenaTest is Test {
     {
         uint64 commitDeadline = uint64(block.timestamp + 1 hours);
         vm.startPrank(owner);
+        // The question is pinned first, for the id the next round will get; creation refuses otherwise.
+        adapter.pinQuestion(arena.roundCount() + 1, QUESTION, 1, 5, 4, commitDeadline, "");
         id = arena.createRound(
             mode,
             choices,
@@ -58,8 +60,9 @@ contract ArenaTest is Test {
             threshold,
             keccak256("rules v1")
         );
-        adapter.pinQuestion(id, QUESTION, 1, 5, 4, commitDeadline, "");
         vm.stopPrank();
+        assertEq(address(arena.rounds(id).oracle), address(adapter));
+        assertEq(arena.rounds(id).questionHash, QUESTION);
     }
 
     function enter(uint256 id, address who, uint8 choice) internal returns (bytes32 salt) {
@@ -356,5 +359,106 @@ contract ArenaTest is Test {
         assertEq(arena.ENTRY_COST(), 102 ether);
         assertEq(arena.MAX_LOSS(), 22 ether);
         assertEq(arena.CANCEL_GRACE(), 72 hours);
+    }
+
+    // ------------------------------------------------------------------ frozen result source
+
+    function test_createRoundNeedsPinnedQuestionAtTheCommitBoundary() public {
+        uint64 commitDeadline = uint64(block.timestamp + 1 hours);
+        vm.startPrank(owner);
+        vm.expectRevert(Arena.QuestionNotPinned.selector);
+        arena.createRound(Arena.Mode.VaultRaid, 4, commitDeadline, commitDeadline + 1, commitDeadline + 2, 0, 0, 0);
+        // Pinned, but with a boundary that is not the round's commit deadline: refused too.
+        adapter.pinQuestion(1, QUESTION, 1, 5, 4, commitDeadline + 1, "");
+        vm.expectRevert(Arena.QuestionNotPinned.selector);
+        arena.createRound(Arena.Mode.VaultRaid, 4, commitDeadline, commitDeadline + 1, commitDeadline + 2, 0, 0, 0);
+        arena.createRound(Arena.Mode.VaultRaid, 4, commitDeadline + 1, commitDeadline + 2, commitDeadline + 3, 0, 0, 0);
+        vm.stopPrank();
+        assertEq(arena.roundCount(), 1);
+    }
+
+    /// @dev Finding 4309f6e9: the owner could point the Arena at another oracle after reveals.
+    function test_ownerCannotSwapOracleForAnOpenRound() public {
+        uint256 id = createRound(Arena.Mode.FactionDuel, 2, 300 ether, 0);
+        enter(id, alice, 2);
+        enter(id, bob, 1);
+        skip(1 hours);
+        reveal(id, alice, 2);
+        reveal(id, bob, 1);
+        skip(1 hours);
+        FakeOracle fake = new FakeOracle();
+        vm.prank(owner);
+        arena.setOracle(IRoundOracle(address(fake)));
+        vm.expectRevert(Arena.NoResult.selector);
+        arena.settle(id);
+        // The real adapter's result still settles it, with the oracle the round opened with.
+        attest(id, 1); // winning 2
+        arena.settle(id);
+        assertEq(arena.payoutOf(id, alice), 400 ether);
+        assertEq(arena.payoutOf(id, bob), 90 ether);
+        // A later `setOracle` is for rounds created after it; an existing round keeps its own.
+        vm.prank(owner);
+        arena.setOracle(IRoundOracle(address(adapter)));
+        uint256 second = createRound(Arena.Mode.FactionDuel, 2, 0, 0);
+        vm.prank(owner);
+        arena.setOracle(IRoundOracle(address(fake)));
+        assertEq(address(arena.rounds(second).oracle), address(adapter), "a round keeps the oracle it opened with");
+        assertEq(address(arena.oracle()), address(fake));
+    }
+
+    function test_signerRotationDoesNotReachPinnedRounds() public {
+        uint256 id = createRound(Arena.Mode.FactionDuel, 2, 0, 0);
+        enter(id, alice, 1);
+        vm.prank(owner);
+        adapter.setSigner(makeAddr("newSigner"));
+        skip(2 hours);
+        attest(id, 0); // signed by the signer pinned with the question: accepted
+        arena.settle(id);
+        assertEq(arena.rounds(id).winningChoice, 1);
+    }
+
+    /// @dev Finding ac9ccf02: after the grace, cancel and settle were both live on a round with a result.
+    function test_resolvedRoundCannotBeCancelled_onlySettled() public {
+        uint256 id = createRound(Arena.Mode.FactionDuel, 2, 300 ether, 0);
+        enter(id, alice, 2);
+        enter(id, bob, 1);
+        skip(1 hours);
+        reveal(id, alice, 2);
+        reveal(id, bob, 1);
+        skip(2 hours + 72 hours); // past the result deadline's grace
+        attest(id, 1); // winning 2, relayed late
+        assertTrue(arena.resolved(id));
+        vm.prank(bob);
+        vm.expectRevert(Arena.RoundResolved.selector);
+        arena.cancel(id);
+        arena.settle(id);
+        assertEq(arena.payoutOf(id, alice), 400 ether);
+        assertEq(arena.payoutOf(id, bob), 90 ether);
+    }
+
+    function test_unresolvedRoundCancelsAndALateResultCannotSettleIt() public {
+        uint256 id = createRound(Arena.Mode.FactionDuel, 2, 300 ether, 0);
+        enter(id, alice, 2);
+        skip(3 hours + 72 hours);
+        assertFalse(arena.resolved(id));
+        arena.cancel(id);
+        attest(id, 1);
+        vm.expectRevert(Arena.NotOpen.selector);
+        arena.settle(id);
+        assertEq(arena.payoutOf(id, alice), 102 ether);
+    }
+}
+
+/// @dev An oracle that answers nothing: what a swapped-in result source looks like to an open round.
+contract FakeOracle is IRoundOracle {
+    function resultOf(uint256) external pure returns (Result memory r) {}
+
+    function pinned(uint256) external pure returns (Pinned memory p) {
+        p.questionHash = keccak256("fake");
+        p.notBefore = type(uint64).max;
+    }
+
+    function ISSUED_AT_TOLERANCE() external pure returns (uint64) {
+        return 5 minutes;
     }
 }

@@ -1484,7 +1484,17 @@
   },
   {
     "type": "error",
+    "name": "SwapTooSmall",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "TreasuryAlreadyBound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TreasuryMismatch",
     "inputs": []
   },
   {

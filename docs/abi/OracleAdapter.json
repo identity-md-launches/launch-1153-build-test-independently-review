@@ -585,6 +585,11 @@
             "internalType": "uint64"
           },
           {
+            "name": "signer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
             "name": "body",
             "type": "bytes",
             "internalType": "bytes"
@@ -1233,6 +1238,11 @@
   },
   {
     "type": "error",
+    "name": "AssetNotWithdrawable",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "AttestationExpired",
     "inputs": [
       {
@@ -1257,6 +1267,17 @@
     "type": "error",
     "name": "BadSignature",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BeforeBoundary",
+    "inputs": [
+      {
+        "name": "notBefore",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
   },
   {
     "type": "error",

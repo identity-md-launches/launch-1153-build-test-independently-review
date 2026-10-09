@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {OracleAttestation, OracleAttestationConsumer} from "./OracleAttestation.sol";
 import {TwoStepOwned} from "./TwoStepOwned.sol";
 
@@ -22,12 +23,15 @@ interface IIntake {
 
 /// @title OracleAdapter: verified IMD panel attestations as Arena round results
 /// @notice For each Arena round the owner pins one question (its canonical hash, the chain it is about, the
-/// request body, the minimum panel and quorum, and the round's commit deadline). A result settles the round
-/// only if a current, correctly signed EIP-712 attestation in this contract's domain carries exactly that
-/// question hash, was issued no earlier than the commit deadline minus `ISSUED_AT_TOLERANCE`, is not
-/// expired, has `agreed >= quorum`, meets the pinned panel/quorum minimums, has not been consumed before,
-/// and carries a `uint256` answer. The result and its evidence reference (request id, panel job id, block
-/// window and hash) are stored; the Arena reads them.
+/// request body, the minimum panel and quorum, and the round's commit deadline as `notBefore`). The trusted
+/// signer at pin time is recorded with the question, so rotating the signer later affects only future rounds.
+/// A result settles the round only if a current, correctly signed EIP-712 attestation in this contract's
+/// domain by the pinned signer carries exactly that question hash, was issued no earlier than the commit
+/// deadline minus `ISSUED_AT_TOLERANCE`, is not expired, has `agreed >= quorum`, meets the pinned
+/// panel/quorum minimums, has not been consumed before, and carries a `uint256` answer. Nothing is stored,
+/// and nothing is requested, before `notBefore` on the chain's own clock: the tolerance covers signer clock
+/// skew, never a window in which an answer is public while commitments are still open. The result and its
+/// evidence reference (request id, panel job id, block window and hash) are stored; the Arena reads them.
 ///
 /// Two ways in: the Intake's own callback after a paid `oracle.request` made by `request()`, and
 /// `submitAttestation()`, a permissionless manual relay for the same signed attestation (keys stay with the
@@ -43,6 +47,7 @@ contract OracleAdapter is OracleAttestationConsumer, TwoStepOwned {
         uint16 minPanel;
         uint16 minQuorum;
         uint64 notBefore; // the round's commit deadline
+        address signer; // the trusted signer when the question was pinned
         bytes body;
     }
 
@@ -100,11 +105,13 @@ contract OracleAdapter is OracleAttestationConsumer, TwoStepOwned {
     error QuorumTooSmall();
     error NotAgreed();
     error IssuedTooEarly(uint64 issuedAt, uint64 notBefore);
+    error BeforeBoundary(uint64 notBefore);
     error AlreadySettled(uint256 roundId);
     error BudgetExceeded();
     error RequestNotStale();
     error ZeroAddress();
     error AlreadyPinned(uint256 roundId);
+    error AssetNotWithdrawable();
 
     constructor(address owner_, address signer_) OracleAttestationConsumer(signer_) TwoStepOwned(owner_) {}
 
@@ -146,11 +153,12 @@ contract OracleAdapter is OracleAttestationConsumer, TwoStepOwned {
         emit BudgetSet(perWindow);
     }
 
+    /// @notice Rotates the trusted signer for questions pinned from now on. Already pinned rounds keep theirs.
     function setSigner(address to) external onlyOwner {
         _setOracleSigner(to);
     }
 
-    /// @notice Pins a round's question before it opens. Immutable once pinned.
+    /// @notice Pins a round's question before it opens, with the current trusted signer. Immutable once pinned.
     function pinQuestion(
         uint256 roundId,
         bytes32 questionHash,
@@ -162,7 +170,7 @@ contract OracleAdapter is OracleAttestationConsumer, TwoStepOwned {
     ) external onlyOwner {
         if (_pinned[roundId].questionHash != bytes32(0)) revert AlreadyPinned(roundId);
         if (questionHash == bytes32(0) || minQuorum < 2 || minPanel < minQuorum) revert NotConfigured("question");
-        _pinned[roundId] = Pinned(questionHash, chainId, minPanel, minQuorum, notBefore, body);
+        _pinned[roundId] = Pinned(questionHash, chainId, minPanel, minQuorum, notBefore, oracleSigner, body);
         emit QuestionPinned(roundId, questionHash, chainId, notBefore);
     }
 
@@ -183,13 +191,16 @@ contract OracleAdapter is OracleAttestationConsumer, TwoStepOwned {
 
     // ------------------------------------------------------------------ paid request (executor)
 
-    /// @notice Buys one panel answer for `roundId` from IMD this contract holds, within the budget.
+    /// @notice Buys one panel answer for `roundId` from IMD this contract holds, within the budget. Refused
+    /// before the round's commit boundary: an answer bought while commitments are open could leak or be wasted.
     function request(uint256 roundId) external returns (bytes32 intakeId) {
         if (msg.sender != executor) revert NotExecutor();
         if (!paidRequestsEnabled()) revert NotConfigured("paid requests");
         Pinned storage p = _pinned[roundId];
         if (p.questionHash == bytes32(0)) revert QuestionNotPinned(roundId);
         if (_results[roundId].settled) revert AlreadySettled(roundId);
+        // forge-lint: disable-next-line(block-timestamp)
+        if (block.timestamp < p.notBefore) revert BeforeBoundary(p.notBefore);
         if (block.timestamp >= windowStart + BUDGET_WINDOW) {
             windowStart = block.timestamp;
             spentInWindow = 0;
@@ -239,7 +250,10 @@ contract OracleAdapter is OracleAttestationConsumer, TwoStepOwned {
         Pinned storage p = _pinned[roundId];
         if (p.questionHash == bytes32(0)) revert QuestionNotPinned(roundId);
         if (_results[roundId].settled) revert AlreadySettled(roundId);
-        _verifyAttestation(a, signature);
+        // The chain's own clock: no answer is on chain while the Arena still accepts commitments.
+        // forge-lint: disable-next-line(block-timestamp)
+        if (block.timestamp < p.notBefore) revert BeforeBoundary(p.notBefore);
+        _verifyAttestationBy(p.signer, a, signature);
         if (a.questionHash != p.questionHash) revert QuestionMismatch();
         if (a.chainId != p.chainId) revert ChainMismatch();
         if (a.panelSize < p.minPanel) revert PanelTooSmall();
@@ -262,8 +276,23 @@ contract OracleAdapter is OracleAttestationConsumer, TwoStepOwned {
         emit ResultStored(roundId, answer, a.requestId, a.panelJobId);
     }
 
-    /// @notice Returns IMD (or any token) the owner wants back, e.g. after a decommission.
+    /// @dev The base contract's checks (expiry, issued-at skew, signature) against the signer pinned with the
+    /// round's question rather than the current one, so a rotation never changes an open round's authority.
+    function _verifyAttestationBy(address signer, OracleAttestation.Attestation calldata a, bytes calldata signature)
+        internal
+        view
+    {
+        // forge-lint: disable-next-line(block-timestamp)
+        if (block.timestamp > a.expiresAt) revert AttestationExpired(a.expiresAt);
+        // forge-lint: disable-next-line(block-timestamp)
+        if (a.issuedAt > block.timestamp + ISSUED_AT_TOLERANCE) revert AttestationNotYetValid(a.issuedAt);
+        if (!SignatureChecker.isValidSignatureNow(signer, attestationDigest(a), signature)) revert BadSignature();
+    }
+
+    /// @notice Returns a token sent here by mistake. The configured payment asset (the IMD bought from fees
+    /// for agent work) cannot be withdrawn: it is spent only on panel answers.
     function withdrawToken(address token, address to, uint256 amount) external onlyOwner {
+        if (token == asset) revert AssetNotWithdrawable();
         IERC20(token).safeTransfer(to, amount);
     }
 }
