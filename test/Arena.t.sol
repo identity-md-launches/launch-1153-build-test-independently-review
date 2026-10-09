@@ -1,0 +1,360 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
+
+import {Test} from "forge-std/Test.sol";
+import {PrismRiotToken} from "../src/PrismRiotToken.sol";
+import {Arena, IRoundOracle} from "../src/Arena.sol";
+import {OracleAdapter} from "../src/OracleAdapter.sol";
+import {OracleAttestation} from "../src/OracleAttestation.sol";
+
+contract ArenaTest is Test {
+    uint256 constant SIGNER_KEY = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
+    address constant SIGNER = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    bytes32 constant QUESTION = keccak256("round question");
+    uint64 constant T0 = 1_800_000_000;
+
+    PrismRiotToken token;
+    Arena arena;
+    OracleAdapter adapter;
+    address owner = makeAddr("owner");
+    address treasury = makeAddr("treasury");
+    address alice = makeAddr("alice");
+    address bob = makeAddr("bob");
+    address carol = makeAddr("carol");
+
+    function setUp() public {
+        vm.warp(T0);
+        token = new PrismRiotToken();
+        arena = new Arena(owner, address(token));
+        adapter = new OracleAdapter(owner, SIGNER);
+        vm.prank(owner);
+        arena.setOracle(IRoundOracle(address(adapter)));
+        address[3] memory players = [alice, bob, carol];
+        for (uint256 i; i < players.length; i++) {
+            token.transfer(players[i], 1_000 ether);
+            vm.prank(players[i]);
+            token.approve(address(arena), 102 ether);
+        }
+        token.transfer(treasury, 10_000 ether);
+        vm.startPrank(treasury);
+        token.approve(address(arena), type(uint256).max);
+        arena.fundPrizes(1_000 ether);
+        vm.stopPrank();
+    }
+
+    function createRound(Arena.Mode mode, uint8 choices, uint256 prize, uint16 threshold)
+        internal
+        returns (uint256 id)
+    {
+        uint64 commitDeadline = uint64(block.timestamp + 1 hours);
+        vm.startPrank(owner);
+        id = arena.createRound(
+            mode,
+            choices,
+            commitDeadline,
+            commitDeadline + 1 hours,
+            commitDeadline + 2 hours,
+            prize,
+            threshold,
+            keccak256("rules v1")
+        );
+        adapter.pinQuestion(id, QUESTION, 1, 5, 4, commitDeadline, "");
+        vm.stopPrank();
+    }
+
+    function enter(uint256 id, address who, uint8 choice) internal returns (bytes32 salt) {
+        salt = keccak256(abi.encode(who, id));
+        bytes32 c = arena.commitmentOf(id, who, choice, salt);
+        vm.prank(who);
+        arena.enter(id, c);
+    }
+
+    function reveal(uint256 id, address who, uint8 choice) internal {
+        vm.prank(who);
+        arena.reveal(id, choice, keccak256(abi.encode(who, id)));
+    }
+
+    function attest(uint256 id, uint256 answer) internal {
+        Arena.Round memory r = arena.rounds(id);
+        OracleAttestation.Attestation memory a = OracleAttestation.Attestation({
+            requestId: keccak256(abi.encode("req", id)),
+            chainId: 1,
+            questionHash: QUESTION,
+            answerType: OracleAttestation.ANSWER_UINT256,
+            answer: abi.encode(answer),
+            figure: 0,
+            fromBlock: 1,
+            toBlock: 2,
+            blockHash: bytes32(uint256(1)),
+            panelJobId: keccak256(abi.encode("job", id)),
+            panelSize: 5,
+            quorum: 4,
+            agreed: 5,
+            issuedAt: r.commitDeadline,
+            expiresAt: uint64(block.timestamp + 1 days)
+        });
+        (uint8 v, bytes32 rr, bytes32 s) = vm.sign(SIGNER_KEY, adapter.attestationDigest(a));
+        adapter.submitAttestation(id, a, abi.encodePacked(rr, s, v));
+    }
+
+    function balanceInvariant() internal view {
+        assertEq(
+            token.balanceOf(address(arena)),
+            arena.totalEscrowed() + arena.lockedPrizes() + arena.unallocatedPrizePool(),
+            "every PRIO in the arena is escrow, a locked prize or the game pool"
+        );
+    }
+
+    // ------------------------------------------------------------------ lifecycle
+
+    function test_vaultRaidFullLifecycle() public {
+        uint256 id = createRound(Arena.Mode.VaultRaid, 4, 300 ether, 0);
+        assertEq(arena.lockedPrizes(), 300 ether);
+        enter(id, alice, 3); // correct: answer 6 % 4 + 1 = 3
+        enter(id, bob, 1); // wrong
+        enter(id, carol, 3); // correct but never reveals
+        assertEq(token.balanceOf(alice), 898 ether);
+        balanceInvariant();
+
+        skip(1 hours);
+        reveal(id, alice, 3);
+        reveal(id, bob, 1);
+        vm.expectRevert(Arena.RevealNotOver.selector);
+        arena.settle(id);
+        skip(1 hours);
+        vm.expectRevert(Arena.NoResult.selector);
+        arena.settle(id);
+
+        attest(id, 6);
+        arena.settle(id);
+        Arena.Round memory r = arena.rounds(id);
+        assertEq(uint256(r.state), uint256(Arena.RoundState.Settled));
+        assertEq(r.winningChoice, 3);
+        assertEq(r.correct, 1);
+        assertEq(r.prizePerWinner, 300 ether);
+        balanceInvariant();
+
+        assertEq(arena.payoutOf(id, alice), 400 ether);
+        assertEq(arena.payoutOf(id, bob), 90 ether);
+        assertEq(arena.payoutOf(id, carol), 80 ether);
+        vm.prank(alice);
+        arena.claim(id);
+        vm.prank(bob);
+        arena.claim(id);
+        vm.prank(carol);
+        arena.claim(id);
+        assertEq(token.balanceOf(alice), 1_298 ether);
+        assertEq(token.balanceOf(bob), 988 ether);
+        assertEq(token.balanceOf(carol), 978 ether);
+        // fees 3*2 + penalties 10 + 20 feed the game pool
+        assertEq(arena.unallocatedPrizePool(), 700 ether + 36 ether);
+        assertEq(arena.totalEscrowed(), 0);
+        balanceInvariant();
+
+        vm.prank(alice);
+        vm.expectRevert(Arena.AlreadyClaimed.selector);
+        arena.claim(id);
+    }
+
+    function test_oldRoundStaysClaimableAfterNewRounds() public {
+        uint256 first = createRound(Arena.Mode.FactionDuel, 2, 100 ether, 0);
+        enter(first, alice, 2);
+        skip(1 hours);
+        reveal(first, alice, 2);
+        skip(1 hours);
+        attest(first, 1); // 1 % 2 + 1 = 2
+        arena.settle(first);
+        uint256 second = createRound(Arena.Mode.VaultRaid, 3, 50 ether, 0);
+        vm.prank(bob);
+        token.approve(address(arena), 102 ether);
+        enter(second, bob, 1);
+        skip(30 days);
+        vm.prank(alice);
+        arena.claim(first);
+        assertEq(token.balanceOf(alice), 1_000 ether - 102 ether + 100 ether + 100 ether);
+        balanceInvariant();
+    }
+
+    function test_bossChallengeNeedsThreshold() public {
+        uint256 id = createRound(Arena.Mode.BossChallenge, 3, 300 ether, 2);
+        enter(id, alice, 2);
+        enter(id, bob, 1);
+        skip(1 hours);
+        reveal(id, alice, 2);
+        reveal(id, bob, 1);
+        skip(1 hours);
+        attest(id, 1); // winning 2; only alice correct, threshold 2 -> no prize
+        arena.settle(id);
+        assertEq(arena.payoutOf(id, alice), 100 ether);
+        assertEq(arena.payoutOf(id, bob), 90 ether);
+        assertEq(arena.unallocatedPrizePool(), 1_000 ether, "prize returned to the game pool");
+        balanceInvariant();
+    }
+
+    function test_noWinnerReturnsPrizeToPool() public {
+        uint256 id = createRound(Arena.Mode.VaultRaid, 4, 200 ether, 0);
+        enter(id, alice, 1);
+        skip(2 hours);
+        attest(id, 2); // winning 3
+        arena.settle(id);
+        assertEq(arena.rounds(id).prizePerWinner, 0);
+        assertEq(arena.unallocatedPrizePool(), 1_000 ether);
+        vm.prank(alice);
+        arena.claim(id);
+        assertEq(
+            token.balanceOf(alice),
+            1_000 ether - 102 ether + 80 ether,
+            "missed reveal: 80 back, never stacked with wrong"
+        );
+        balanceInvariant();
+    }
+
+    function test_cancelAfter72hRefundsEverything() public {
+        uint256 id = createRound(Arena.Mode.VaultRaid, 4, 200 ether, 0);
+        enter(id, alice, 1);
+        enter(id, bob, 2);
+        skip(2 hours);
+        vm.expectRevert(Arena.NotCancellable.selector);
+        arena.cancel(id);
+        skip(72 hours); // 72h after the reveal deadline is still inside the grace after the result deadline
+        vm.expectRevert(Arena.NotCancellable.selector);
+        arena.cancel(id);
+        skip(1 hours);
+        arena.cancel(id);
+        vm.expectRevert(Arena.NotSettled.selector);
+        arena.claim(id);
+        vm.prank(alice);
+        vm.expectRevert(Arena.NotCancelled.selector);
+        arena.refund(1_000);
+        vm.prank(alice);
+        arena.refund(id);
+        vm.prank(bob);
+        arena.refund(id);
+        assertEq(token.balanceOf(alice), 1_000 ether);
+        assertEq(token.balanceOf(bob), 1_000 ether);
+        assertEq(arena.unallocatedPrizePool(), 1_000 ether);
+        assertEq(arena.lockedPrizes(), 0);
+        balanceInvariant();
+        // A result arriving late cannot resurrect a cancelled round.
+        attest(id, 0);
+        vm.expectRevert(Arena.NotOpen.selector);
+        arena.settle(id);
+    }
+
+    // ------------------------------------------------------------------ failures
+
+    function test_entryRules() public {
+        uint256 id = createRound(Arena.Mode.VaultRaid, 4, 0, 0);
+        enter(id, alice, 1);
+        vm.prank(alice);
+        vm.expectRevert(Arena.AlreadyEntered.selector);
+        arena.enter(id, bytes32(uint256(1)));
+        vm.prank(alice);
+        vm.expectRevert(Arena.NotSettled.selector);
+        arena.claim(id);
+        // Only 102 PRIO is ever pulled: a second entry would need another approval.
+        assertEq(token.allowance(alice, address(arena)), 0);
+        skip(1 hours);
+        vm.prank(bob);
+        vm.expectRevert(Arena.CommitClosed.selector);
+        arena.enter(id, bytes32(uint256(1)));
+        vm.prank(alice);
+        vm.expectRevert(Arena.BadReveal.selector);
+        arena.reveal(id, 2, keccak256(abi.encode(alice, id)));
+        vm.prank(alice);
+        vm.expectRevert(Arena.BadChoice.selector);
+        arena.reveal(id, 9, keccak256(abi.encode(alice, id)));
+        reveal(id, alice, 1);
+        vm.prank(alice);
+        vm.expectRevert(Arena.AlreadyRevealed.selector);
+        arena.reveal(id, 1, keccak256(abi.encode(alice, id)));
+        skip(1 hours);
+        vm.prank(alice);
+        vm.expectRevert(Arena.RevealWindowClosed.selector);
+        arena.reveal(id, 1, keccak256(abi.encode(alice, id)));
+    }
+
+    function test_roundCreationRules() public {
+        vm.startPrank(owner);
+        vm.expectRevert(Arena.PrizeNotFunded.selector);
+        arena.createRound(
+            Arena.Mode.VaultRaid,
+            4,
+            uint64(block.timestamp + 1),
+            uint64(block.timestamp + 2),
+            uint64(block.timestamp + 3),
+            5_000 ether,
+            0,
+            0
+        );
+        vm.expectRevert(Arena.BadDeadlines.selector);
+        arena.createRound(
+            Arena.Mode.VaultRaid,
+            4,
+            uint64(block.timestamp + 2),
+            uint64(block.timestamp + 1),
+            uint64(block.timestamp + 3),
+            0,
+            0,
+            0
+        );
+        vm.expectRevert(Arena.BadChoices.selector);
+        arena.createRound(
+            Arena.Mode.FactionDuel,
+            3,
+            uint64(block.timestamp + 1),
+            uint64(block.timestamp + 2),
+            uint64(block.timestamp + 3),
+            0,
+            0,
+            0
+        );
+        vm.stopPrank();
+        vm.prank(alice);
+        vm.expectRevert();
+        arena.createRound(
+            Arena.Mode.VaultRaid,
+            4,
+            uint64(block.timestamp + 1),
+            uint64(block.timestamp + 2),
+            uint64(block.timestamp + 3),
+            0,
+            0,
+            0
+        );
+    }
+
+    function test_resultIssuedBeforeCommitBoundaryCannotSettle() public {
+        uint256 id = createRound(Arena.Mode.VaultRaid, 4, 0, 0);
+        enter(id, alice, 1);
+        skip(2 hours);
+        // Pin a second round whose question allows an early answer, to show the Arena's own check.
+        Arena.Round memory r = arena.rounds(id);
+        OracleAttestation.Attestation memory a = OracleAttestation.Attestation({
+            requestId: keccak256("early"),
+            chainId: 1,
+            questionHash: QUESTION,
+            answerType: OracleAttestation.ANSWER_UINT256,
+            answer: abi.encode(1),
+            figure: 0,
+            fromBlock: 1,
+            toBlock: 2,
+            blockHash: bytes32(0),
+            panelJobId: bytes32(0),
+            panelSize: 5,
+            quorum: 4,
+            agreed: 5,
+            issuedAt: r.commitDeadline - 10 minutes,
+            expiresAt: uint64(block.timestamp + 1 days)
+        });
+        (uint8 v, bytes32 rr, bytes32 s) = vm.sign(SIGNER_KEY, adapter.attestationDigest(a));
+        vm.expectRevert();
+        adapter.submitAttestation(id, a, abi.encodePacked(rr, s, v));
+    }
+
+    function test_constantsPublished() public view {
+        assertEq(arena.ENTRY_COST(), 102 ether);
+        assertEq(arena.MAX_LOSS(), 22 ether);
+        assertEq(arena.CANCEL_GRACE(), 72 hours);
+    }
+}

@@ -1,0 +1,49 @@
+# PRISM RIOT operator
+
+The operator is `operator/operator.py`, a Python 3.10+ script with no third-party dependencies. It
+drives the two IMD paid flows the project uses and relays results to the contracts. It holds no
+authority: it can only spend what the owner budgeted on chain (`OracleAdapter.setBudget`) and what
+`operator.json` allows, and nothing it produces can change an active round or move player funds.
+
+## Setup
+
+1. Copy `operator/operator.example.json` to `operator.json` and fill `contracts.*` with the launched
+   addresses (README "Deployment").
+2. Export the operator wallet's key **on the server only**: `export OPERATOR_PRIVATE_KEY=0x...`.
+   The key is passed to `cast send` as a subprocess argument and never written to disk or logs.
+   Fund the wallet's gas from the treasury's reserve (`FeeTreasury.withdrawReserve`, owner or executor)
+   after fees have accrued; there is no other gas source.
+3. Set the same wallet as executor on chain: `FeeTreasury.setExecutor` and `OracleAdapter.setExecutor`.
+4. Leave `paid_operations_enabled` at `false` until the owner has done the "After launch" steps in
+   the README and `OracleAdapter.paidRequestsEnabled()` returns true, and the adapter holds IMD that
+   the treasury bought (`FeeTreasury.buyImd`). Then flip it to `true`.
+
+## Commands
+
+| Command | What it does | Paid? |
+| --- | --- | --- |
+| `capabilities` | GET the door's capabilities | no |
+| `quote <action> <body-json>` | `check` then `quote` an action body | no |
+| `request-round <roundId> [--dry-run]` | `OracleAdapter.request(roundId)`: pays 0.5 IMD from the adapter's balance via the Intake | yes |
+| `poll <requestId>` | polls the request status with the configured interval and attempt cap | no |
+| `relay <roundId> <attestation.json> [--dry-run]` | manual result delivery: `OracleAdapter.submitAttestation` | gas only |
+| `propose "<brief>" [--dry-run]` | `job.open` for challenge text / artwork; stores the proposal under `proposals/` | yes |
+
+Every paid command passes the daily ledger (`operator-state.json`): IMD per day, gas per day and
+request count per day. A refused step prints the reason and exits 1. Retries use linear backoff and
+a fixed attempt cap; polling stops on the first terminal status.
+
+## Result delivery and claims
+
+The Intake calls `OracleAdapter.onOracleResult` itself when the panel settles (status 0). If that
+callback is missed (out of gas, status 1/2, or a relayer outage) the same signed attestation can be
+submitted by anyone with `relay`; the signature is the proof, so relaying it is safe. After the
+result is stored, `Arena.settle(roundId)` is permissionless, and so are `claim`, `refund` and
+`cancel`. Players can always claim themselves; the operator may call these for convenience.
+
+## What agent output is
+
+`propose` returns text and image references. They are **proposals** for the owner to read and, if
+accepted, to turn into a *future* round with `Arena.createRound` and `OracleAdapter.pinQuestion`.
+An active round's rules, deadlines, prize and scoring are frozen at creation and no contract call
+can change them.

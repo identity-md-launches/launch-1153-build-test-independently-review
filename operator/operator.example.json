@@ -1,0 +1,19 @@
+{
+  "paid_operations_enabled": false,
+  "rpc_url": "https://ethereum-rpc.publicnode.com",
+  "chain_id": 1,
+  "api_base": "https://api.imd.fun",
+  "contracts": {
+    "oracle_adapter": "",
+    "fee_treasury": "",
+    "arena": ""
+  },
+  "budget": {
+    "imd_per_day": "1000000000000000000",
+    "gas_eth_per_day": "20000000000000000",
+    "requests_per_day": 4,
+    "oracle_price_imd": "500000000000000000"
+  },
+  "poll": { "interval_seconds": 30, "max_attempts": 120 },
+  "retries": { "attempts": 3, "backoff_seconds": 5 }
+}

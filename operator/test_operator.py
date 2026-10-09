@@ -1,0 +1,94 @@
+"""Offline tests for the operator: budgets, the disabled switch, retries and the polling loop."""
+
+import io
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import importlib.util
+import sys
+
+spec = importlib.util.spec_from_file_location("prio_operator", Path(__file__).with_name("operator.py"))
+op = importlib.util.module_from_spec(spec)
+sys.modules["prio_operator"] = op
+spec.loader.exec_module(op)
+
+
+class FakeResponse(io.BytesIO):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+class BudgetTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cfg = op.load_config(Path(self.tmp.name) / "none.json")
+        self.budget = op.Budget(self.cfg, Path(self.tmp.name) / "state.json")
+
+    def test_caps_are_enforced(self):
+        ok, _ = self.budget.allow(imd_wei=int(1e18))
+        self.assertTrue(ok)
+        self.budget.record(imd_wei=int(1e18), requests=1)
+        ok, why = self.budget.allow(imd_wei=1)
+        self.assertFalse(ok)
+        self.assertIn("IMD", why)
+        ok, why = self.budget.allow(requests=4)
+        self.assertFalse(ok)
+
+    def test_disabled_until_configured(self):
+        with self.assertRaises(SystemExit):
+            op.cmd_request_round(self.cfg, self.budget, 1, dry_run=True)
+        self.cfg["paid_operations_enabled"] = True
+        with self.assertRaises(SystemExit):
+            op.cmd_request_round(self.cfg, self.budget, 1, dry_run=True)
+        self.cfg["contracts"]["oracle_adapter"] = "0x" + "11" * 20
+        out = op.cmd_request_round(self.cfg, self.budget, 1, dry_run=True)
+        self.assertTrue(out["ok"])
+        self.assertTrue(out["tx"].startswith("DRY-RUN"))
+
+    def test_relay_dry_run_builds_tuple(self):
+        att = {
+            "requestId": "0x" + "01" * 32, "chainId": 1, "questionHash": "0x" + "02" * 32, "answerType": 3,
+            "answer": "0x" + "00" * 31 + "07", "figure": 0, "fromBlock": 1, "toBlock": 2, "blockHash": "0x" + "03" * 32,
+            "panelJobId": "0x" + "04" * 32, "panelSize": 5, "quorum": 4, "agreed": 5, "issuedAt": 1, "expiresAt": 2,
+            "signature": "0x" + "ab" * 65,
+        }
+        f = Path(self.tmp.name) / "a.json"
+        f.write_text(json.dumps(att))
+        self.cfg["contracts"]["oracle_adapter"] = "0x" + "11" * 20
+        out = op.cmd_relay(self.cfg, self.budget, 3, f, dry_run=True)
+        self.assertIn("submitAttestation", out["tx"])
+
+
+class HttpTests(unittest.TestCase):
+    def test_retries_then_succeeds(self):
+        calls = {"n": 0}
+
+        def opener(req, timeout):
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise TimeoutError("slow")
+            return FakeResponse(b'{"status":"done"}')
+
+        http = op.Http("http://x", retries=3, backoff=0)
+        http.opener = opener
+        self.assertEqual(http.call("GET", "/v1/requests/1"), {"status": "done"})
+        self.assertEqual(calls["n"], 3)
+
+    def test_poll_stops_on_terminal_status(self):
+        answers = iter([b'{"status":"pending"}', b'{"status":"done","attestation":{}}'])
+        http = op.Http("http://x", retries=1, backoff=0)
+        http.opener = lambda req, timeout: FakeResponse(next(answers))
+        cfg = op.load_config(Path("/nonexistent"))
+        cfg["poll"]["interval_seconds"] = 0
+        out = op.cmd_poll(cfg, http, "1", sleeper=lambda s: None)
+        self.assertEqual(out["status"], "done")
+
+
+if __name__ == "__main__":
+    unittest.main()
