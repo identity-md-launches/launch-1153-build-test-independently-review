@@ -30,6 +30,7 @@ export interface OperatorPayload {
     imdRemainingWei: string;
   };
   activity: OperatorActivity[];
+  reviewedChallenges?: { id: string; title: string; questionHash: Hex; bodyHash: Hex; rulesHash: Hex; reviewedAt: number }[];
 }
 export interface SignedOperatorStatus {
   payload: OperatorPayload;
@@ -40,6 +41,7 @@ export interface OperatorProof {
   signer: Address;
   verifiedAt: number;
   ready: boolean;
+  serviceReady: boolean;
   reasons: string[];
 }
 const canonical = (value: unknown): unknown =>
@@ -104,6 +106,7 @@ function parseStatus(input: unknown): SignedOperatorStatus {
     )
   )
     throw new Error("Invalid operator activity report");
+  if (p.reviewedChallenges !== undefined && (!Array.isArray(p.reviewedChallenges) || p.reviewedChallenges.length > 20 || p.reviewedChallenges.some(c => !c || typeof c.id !== "string" || c.id.length > 100 || typeof c.title !== "string" || c.title.length > 160 || !Number.isSafeInteger(c.reviewedAt) || c.reviewedAt > p.generatedAt || ![c.questionHash,c.bodyHash,c.rulesHash].every(h => isHex(h) && h.length === 66)))) throw new Error("Invalid reviewed challenge content");
   return status;
 }
 /** Verify a short-lived public report with the CURRENT on-chain executor. Rechecked before entry. */
@@ -170,6 +173,7 @@ export async function verifyOperatorStatus(
     signer,
     verifiedAt: now,
     ready: snapshot.verified && snapshot.corePaidReady && reasons.length === 0,
+    serviceReady: snapshot.verified && !!snapshot.operationsReady && reasons.filter(r => r !== "No funded active prizes").length === 0,
     reasons,
   };
 }

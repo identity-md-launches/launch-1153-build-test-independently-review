@@ -1,79 +1,51 @@
-# PRISM RIOT interface review
+# Better Interface: six-domain review
 
-Reviewed 2026-10-10 with the pinned Better Interface workflow and the core principles of all six domains. This is worker-produced evidence, not an independent network certification or a security guarantee.
+Reviewed 2026-10-10 by the implementing worker against the actual root `dist/` export, served beneath `/preview/`. Final entry: `index-B8OTgtTI.js`; final stylesheet: `index-DCGITOhP.css`. The pinned workflow and all six domain cores informed implementation. Turkish and English are supported; no new light theme or RTL variant was requested.
 
-## Scope and environment
+## Coverage
 
-Reviewed the actual production export in `dist/`, served at `/preview/`, including the lobby, faction choices, practice game, wallet dialog, swap quote, staking dialog, paid-round readiness and recovery entry points, and the two owner-setup phases. The final reviewed entry script was `assets/index-DbF_2qlm.js`. Dark neon branding and English are intentional supported variants; a light theme and localization were not requested.
-
-The provided browser MCP could not start because `/opt/google/chrome/chrome` was absent. The current Playwright Chrome download also returned HTTP 403. A permitted foreground fallback used official Playwright Chromium 136.0.7103.25 from Microsoft's public distribution, with temporary Debian libraries and font configuration under `/tmp`. No system configuration, credentials, or protected repository paths were changed. The verification script starts and closes both the preview server and browser within one command.
-
-## Six-domain coverage
-
-| Domain | Coverage | Evidence and limits |
+| Domain | Status | Inspected evidence and limits |
 | --- | --- | --- |
-| Accessibility | Checked | Native buttons, links, labels and dialog; visible keyboard skip-link focus; dialog Tab traversal did not reach background controls; Escape closed the dialog and restored the practice trigger; icon-only mobile wallet has an accessible name; 16px mobile form inputs; static motion alternatives. Axe WCAG 2 A/AA, 2.1 AA and 2.2 AA scan returned zero violations. Image-backed contrast remained an automated incomplete result. No screen-reader session or physical assistive-technology test was performed. |
-| Layout | Checked | Rendered at 1440×1000, 850×1000, 390×844 and 320×844. Each document's scroll width equalled its viewport width. Navigation, cards, modal controls, complete owner address wrapping and visible action placement were inspected. Native 200% browser zoom, RTL and translated text were not tested. |
-| Writing | Checked | Practice is explicitly local and awards no PRIO; current paid readiness, maximum loss, gas, zero reward funding and no fixed APY are visible. Missing wallet and failed RPC states give recovery guidance. Owner preparation is explicitly distinct from execution. Existing approvals are not falsely described as reverted after a declined wallet request. |
-| Typography | Checked | Loaded local Display and Space faces were confirmed in the browser. Display hierarchy remains distinct from body text and numeric controls. Input text is 16px at mobile. Undersized 6–8px metadata was raised to 10px; long labels wrap. Native operating-system font rendering and all possible text enlargement settings were not tested. |
-| Colors | Checked, bounded | Measured the solid foreground/background pairs below. Added opaque dark backgrounds behind mobile hero proof labels and the secondary action where bright art reduced readability. Other image/gradient backgrounds were visually inspected but not exhaustively sampled over every animation frame; the review does not assert universal contrast compliance. |
-| UI details and motion | Checked | Distinct illustrated hero, four faction portraits/environments and three arena/boss illustrations share the supplied logo's neon identity. All four faction raster loops produced differing frames while visible, changed to still images when paused/offscreen, and reduced-motion mode had zero running CSS animations. Faction selection, attack/reveal and practice restart have textual state cues. Sound is off by default. Audio perception, background-tab CPU profiling and DevTools motion playback at 10% speed were not tested. |
+| Accessibility | Checked | Native links/buttons/labels/dialogs, visible skip/focus, Tab/Space/Enter practice, Escape/focus return, inline/live errors, motion pause/reduced-motion, named wallet control. Axe: zero violations in Turkish mobile and English desktop lobby. No physical assistive technology or screen-reader session. |
+| Layout | Checked | Actual production at 1440×1000, 850×1000, 390×844 and 320×844: scrollWidth equals viewport width. Three main nav items visible, hero actions explained, game costs/action separation readable, owner fields wrap. Desktop 200% text resize passed; native browser zoom not performed. |
+| Writing | Checked | Turkish first with English toggle. Free/random/no-token/ cosmetic faction labels; exact escrow/fee/max loss; no rounds explain missing values; readiness distinguishes configuration, RPC and operator. Staking separates deposits from funded rewards. Technical contract/RPC details can remain English inside Turkish explanations. |
+| Typography | Checked | Local Display/Space fonts loaded through the export. Responsive heading hierarchy, 16px fields, larger financial instructions and precise tabular amounts. Final practice choices/result made readable after screenshot review. Platform-specific font rendering not exhaustively tested. |
+| Colors | Checked, bounded | Solid/alpha-composited pairs measured from browser-computed colors below. Dark functional surfaces preserve neon artwork. Text/icons supplement color. Hero image/gradient contrast visually inspected but not sampled at every pixel/frame. |
+| UI / motion | Checked | Same logo/prism/faction/boss media; visible distinct free/real actions; five expandable readiness details; native modal/lazy-loading states; owner-only nav. Four visible loops show changing frames and pause offscreen; dragon/frog/wolf/raven selection reactions, actual practice attack/reveal/result, reduced-motion stills and opt-in sound checked. Sound perception/CPU profiling/10%-speed replay not performed. |
 
-## Findings corrected and rechecked
+## Findings, corrections and rechecks
 
-| Severity | Source | Finding and correction | Recheck |
+| Severity | Final source | Evidence / correction | Recheck |
 | --- | --- | --- | --- |
-| High | `web/src/App.tsx:214` | The mobile header hid the wallet button's text, leaving its icon without a name. Added a stable accessible label, including the connected wallet when present. | No visible unnamed buttons at all four widths; mobile wallet action opened correctly. |
-| Medium | `web/src/style.css:390` | Hero proof labels and the secondary action crossed bright mobile artwork and became difficult to read. Added dark backgrounds and retained the bright artwork behind the group. | Final mobile screenshot inspected; proof text now uses the measured muted-on-background pair. |
-| Medium | `web/src/style.css:1997` | Faction and other metadata dropped to 6–8px at narrower widths. Raised small metadata to 10px and permitted wrapping. | Final 320px/390px/850px layouts had no horizontal overflow; faction names and realm labels remained visible. |
-| Low | `web/src/style.css:1` | Initial font assets used TTF and were duplicated in the public export. Switched to local WOFF2 source assets. | All three final faces reported `loaded`; no font HTTP failure. |
-| Test correction | `web/scripts/browser-check.mjs` | An initial dialog assertion treated native browser-chrome/body focus as a background control, then left the modal open and caused dependent checks to fail. The assertion now rejects actual background controls, closes the dialog and verifies focus return. | Final dialog check passed; subsequent panels opened normally. |
-| Test correction | `web/scripts/browser-check.mjs` | Initial full-page screenshots preceded lazy image loading and retained the skip-link focus overlay. Warmed the sections before capture and kept keyboard-focus evidence separate. | Final screenshots contain complete faction artwork and unobscured branding. |
+| High | `web/src/App.tsx:81`, `:95`, `:108` | Prior attractive lobby obscured practice versus paid actions. Added visible three-path navigation, explained hero actions, how-to before games and two actions on every card. | All routes/cost labels/readiness anchors checked at four widths; screenshots viewed. |
+| High | `web/src/readiness.tsx:8`, `web/src/chain/read.ts:340` | Missing operating configuration could be confused with broken frontend or no operator. Added current nine-binding detail and distinct Phase B/funding/service/round/RPC states, without resetting completed settings. | Fresh reads plus incomplete binding, RPC outage, absent/offline/expired endpoint fixtures pass. |
+| High | `web/src/panels.tsx:248`, `web/src/ui.tsx:186` | Deposit UI needed clear zero funding and accurate units. Added reserve/liability/stream/claimable summary; precise BigInt formatting and one explicit 36-decimal rate conversion matching deployed code. | Zero-funding browser flow; dust/large/rate unit test; real funded fork observation. |
+| High | `web/src/chain/round-admin.ts:23`, `web/src/round-manager.tsx:9` | No owner path from configuration to a funded round. Added reviewed pin/create sequence with service/funding/owner checks, exact deadline/rules binding and receipt/readback validation. | All three modes created with actual deployed ABIs on local fork; blank inputs, wrong wallet/network and conflicts tested. |
+| Medium | `web/src/chain/seasons.ts:21`, `web/src/season-board.tsx:10` | Prior block-window claim ranking counted returned principal. Replaced with dated finalized/receipt-verified prize-share seasons and separate local completion badges. | Empty live season and unit scoring/boundary checks; receipt validation source review. |
+| Medium | `web/src/project-state.ts:14`, `web/src/chain/operator.ts:130` | Player-entered server URL prevented a coherent public project. Added one published endpoint setting, auto fetch/expiry and retained signed executor/budget checks; absent server remains explicit. | Configured 503 and expired signed status fixtures; no player URL field. |
+| Medium | `web/src/style.css:2694` | Dense mobile hierarchy and hidden navigation made choices harder to scan. Refined header wrapping, explanatory actions, card metrics and expandable operations without replacing artwork. | No overflow at 1440/850/390/320; desktop/mobile screenshot review and text enlargement. |
+| Medium | `web/src/style.css:1608`, `web/src/practice.tsx:43` | Initial result screenshot dimmed locked choices and used small result text. Kept locked choices opaque, raised labels/result to 12–13px, and waited for result animation to finish before capture. | Final screenshot viewed; keyboard/result/restart checks pass after final rebuild. |
+| Low | `web/src/panels.tsx:260`, `web/src/rounds.tsx:121` | Translation conversion initially collapsed spacing around token units in JSX. Restored explicit spaces. | Final zero-reward and real-play browser text checks pass. |
+| Test harness | `web/scripts/browser-check.mjs` | Native BODY/browser-chrome focus was mistaken for an interactive background escape; lazy panels/account-change render also needed explicit waits. Assertions now reject background controls and wait for real panel/owner visibility. | All 29 final tests pass; no production readiness bypass added. |
 
 ## Measured contrast
 
-Computed from the named solid CSS colors that render the identified surfaces. These ratios do not describe unrelated image overlays.
+Actual browser-computed foreground/background, using WCAG relative luminance. For transparent secondary actions, the alpha background was composed through solid ancestors. No image/gradient background was assigned a fabricated solid ratio.
 
-| Pair | Foreground | Background | Ratio |
-| --- | --- | --- | --- |
-| Body text | `#f8f5ff` | `#10101d` | 17.50:1 |
-| Muted text / hero proof | `#b9b3cc` | `#10101d` | 9.32:1 |
-| Muted surface text | `#b9b3cc` | `#181624` | 8.81:1 |
-| Primary action | `#10101d` | `#f4f46d` | 16.17:1 |
-| Focus ring on page | `#7ce7ff` | `#10101d` | 13.23:1 |
+| Rendered selector | Foreground / background | Ratio |
+| --- | --- | --- |
+| `.game-content > p` | `#b9b3cc` / `#181624` | 8.81:1 |
+| `.game-actions .primary` | `#10101d` / `#f4f46d` | 16.17:1 |
+| `.game-actions .secondary` | `#f8f5ff` / composite RGB(29.544,27.592,41.256) | 15.62:1 |
+| `.readiness-tile` | `#f8f5ff` / `#181624` | 16.54:1 |
+| `.badge.cyan` | `#7ce7ff` / `#16303a` | 9.70:1 |
 
-## Actual verification
+Raw measurement: `artifacts/contrast.json`. These five pairs do not establish universal contrast or accessibility compliance.
 
-Command executed from the repository root:
+## Rendered evidence and completion
 
-```sh
-FONTCONFIG_FILE=/tmp/prism-review-fonts.conf \
-LD_LIBRARY_PATH=/tmp/prism-review-system/usr/lib/x86_64-linux-gnu \
-PRISM_REVIEW_CHROMIUM=/tmp/prism-review-browsers/chrome-linux/headless_shell \
-/home/debian/.nvm/versions/node/v24.21.0/bin/node web/scripts/browser-check.mjs
-```
+The worker viewed desktop/mobile hero screenshots, game cards/how-to, factions, staking and final practice result. Persistent files: `docs/screenshots/hero-desktop.jpg`, `hero-mobile.jpg`, `factions-mobile.jpg`, `practice-mobile.jpg`. Additional game-card and staking captures are under `artifacts/`. Screenshots are actual production renders; random practice outcomes can differ across runs.
 
-Result: exit 0, **21 checks passed, 0 failed**. On a normal machine with Playwright's browser dependencies installed, run `cd web && npm run test:browser`; the temporary worker overrides are not application requirements.
+`docs/browser-results.json` records all 29 passing interaction checks, four viewports, zero page/console errors and zero missing static assets. `docs/VALIDATION.md` records exact commands, mainnet/fork checks and limitations. `DESIGN.md` follows the pinned implemented-design documentation method.
 
-Verified interactions: mobile menu navigation; faction selection; four visible animated raster loops and still fallbacks; global pause and reduced motion; missing wallet error; practice choice/reveal/scoring/restart; keyboard dialog focus and return; paid-round readiness; read-only Phase A transaction ordering; Phase B owner view; swap input labels and a real read-only quote; staking zero-funding state; mocked wallet connection, Base-to-Ethereum switch and rejection; failed RPC recovery without invented zero balances.
-
-The live quote at Ethereum block **26160354** simulated 0.0001 ETH to 9,810.03469976 PRIO, with a 9,760.98452626 PRIO minimum at 0.5% slippage. It displayed the 1.25% LP fee, currently 0% protocol fee, immutable extra 0.5% ETH-leg hook fee, and zero website fee. This was an `eth_call` simulation, not an executed swap. Live state showed zero rounds, zero funded game prizes, zero staking funding and incomplete owner configuration. These observations can change after that block.
-
-The mock provider used the verified project-owner address only inside the test. Its recorded methods were `eth_requestAccounts`, `eth_chainId`, `wallet_switchEthereumChain`, and a rejected `eth_requestAccounts`; no signing or transaction method was invoked. Phase B confirmation remained disabled without reviewed values. No wallet signature or transaction was broadcast by this review. Paid entry, reveal, claim and refund settlement could not be exercised against live rounds because none existed; their implementation/security tests are recorded separately by the main validation report.
-
-The final browser run reported zero page errors, zero console errors and zero HTTP error responses. Nine image requests were intentionally aborted during changing `src`/`srcset` as loop visibility changed; successful final images were decoded and captured. Browser findings are recorded in `docs/browser-results.json` and `artifacts/browser/review-results.json`.
-
-## Visual evidence
-
-Repository copies total 307,117 bytes:
-
-- `docs/screenshots/hero-desktop.jpg` — final 1440px desktop hero and controls.
-- `docs/screenshots/hero-mobile.jpg` — final 390px mobile hero, backgrounds and controls.
-- `docs/screenshots/factions-mobile.jpg` — four distinct portraits, selected frog faction and readable labels.
-- `docs/screenshots/practice-mobile.jpg` — game-specific boss, revealed choice and explicit no-token result.
-
-Full-page 1440/850/390/320 screenshots, keyboard focus, wallet failure, owner setup, mocked Phase B, paid-round readiness, live quote and RPC failure are additionally under `artifacts/browser/` for the artifact uploader.
-
-## Completion
-
-Complete for the stated browser/interface-review scope, subject to the explicit unperformed checks above. Publication and GitHub delivery are separate and recorded in `docs/PUBLICATION.md`. This review does not certify security, future RPC availability, owner configuration, or server-operator readiness.
+Complete for this local implementation/interface-review scope. Public update remains incomplete because the publisher refused it; real economy readiness still requires owner signatures/funding and a separately hosted operator. No independent security, full WCAG, physical-device or hosted-service certification is claimed.

@@ -110,6 +110,7 @@ export async function readSnapshot(account?: Address): Promise<Snapshot> {
     throw new Error(
       "The RPC did not return Ethereum mainnet. Transactions are disabled.",
     );
+  if (Date.now() / 1000 - Number(block.timestamp) > 300) throw new Error("RPC returned a stale Ethereum block. Refresh or try the fallback RPC.");
   const n = block.number;
   const [
     hookRaw,
@@ -340,6 +341,9 @@ export async function readSnapshot(account?: Address): Promise<Snapshot> {
   });
   const readinessReasons: string[] = [];
   if (!phaseAComplete) readinessReasons.push("Owner bindings are incomplete");
+  if (adapter.intake === zeroAddress) readinessReasons.push("Oracle Intake is not configured");
+  if (!adapter.callbackConfigured) readinessReasons.push("Oracle callback is not configured");
+  if (adapter.oracleSigner === zeroAddress) readinessReasons.push("Oracle signer is not configured");
   if (!adapter.paidRequestsEnabled)
     readinessReasons.push("Paid oracle requests are disabled");
   if (
@@ -355,8 +359,9 @@ export async function readSnapshot(account?: Address): Promise<Snapshot> {
       adapter.liveIntakePrice === 0n ||
       adapter.liveIntakePrice !== adapter.price)
   )
-    readinessReasons.push(
-      "The adapter payment price does not match a fresh successful Intake price read",
+    readinessReasons.push(adapter.liveIntakePriceError
+      ? "Oracle Intake price read failed (RPC or contract error); payment configuration is unverified"
+      : "The adapter payment price does not match a fresh successful Intake price read",
     );
   if (
     treasury.minPrioPerEth === 0n ||
@@ -375,6 +380,7 @@ export async function readSnapshot(account?: Address): Promise<Snapshot> {
     readinessReasons.push(
       "Matching budget-limited executors are not configured",
     );
+  const configurationReady = readinessReasons.length === 0 && verificationErrors.length === 0 && treasury.maxSpendPerSwap > 0n && treasury.spendPerWindow > 0n && treasury.reservePerWindow > 0n && adapter.budgetPerWindow >= adapter.price;
   if (
     treasury.totalIncome === 0n ||
     treasury.reserve === 0n ||
@@ -403,6 +409,7 @@ export async function readSnapshot(account?: Address): Promise<Snapshot> {
     treasury.reservePerWindow === 0n
   )
     readinessReasons.push("An operating spend window is exhausted or disabled");
+  const operationsReady = readinessReasons.length === 0 && verificationErrors.length === 0;
   if (arena.lockedPrizes === 0n)
     readinessReasons.push("No funded active prizes");
   // Static hosting cannot certify a separately operated server. The UI must require independently
@@ -432,6 +439,8 @@ export async function readSnapshot(account?: Address): Promise<Snapshot> {
       liquidity,
     },
     phaseAComplete,
+    configurationReady,
+    operationsReady,
     corePaidReady,
     paidReady: false,
     readinessReasons,

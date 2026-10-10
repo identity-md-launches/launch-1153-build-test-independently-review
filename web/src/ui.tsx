@@ -1,3 +1,4 @@
+import { tx } from "./i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X, ArrowUpRight, LoaderCircle } from "lucide-react";
 export const art = (name: string) => `${import.meta.env.BASE_URL}art/${name}`;
@@ -102,7 +103,7 @@ export function Dialog({
         <button
           className="icon-button"
           onClick={onClose}
-          aria-label="Close dialog"
+          aria-label={tx("Close dialog")}
         >
           <X size={22} />
         </button>
@@ -181,10 +182,15 @@ export function DownloadButton({
     </button>
   );
 }
-export function fmt(value: bigint | undefined, decimals = 4) {
+/** Integer formatting: never converts token balances through an imprecise Number. */
+export function fmt(value: bigint | undefined, decimals = 4, scale = 18) {
   if (value === undefined) return "—";
-  const n = Number(value) / 1e18;
-  return n.toLocaleString("en-US", { maximumFractionDigits: decimals });
+  const negative = value < 0n;
+  const raw = (negative ? -value : value).toString().padStart(scale + 1, "0");
+  const whole = raw.slice(0, -scale) || "0";
+  const fraction = raw.slice(-scale).slice(0, decimals).replace(/0+$/, "");
+  if (value !== 0n && whole === "0" && !fraction) return `${negative ? "−" : ""}<0.${"0".repeat(Math.max(0, decimals - 1))}1`;
+  return `${negative ? "−" : ""}${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${fraction ? "." + fraction : ""}`;
 }
 export function useMotion() {
   const [enabled, setEnabled] = useState(

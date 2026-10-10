@@ -1,3 +1,4 @@
+import { t, tx } from "./i18n";
 import { useRef, useState } from "react";
 import { CheckCircle2, LoaderCircle, Wallet } from "lucide-react";
 import { type Snapshot, type TransactionStatus } from "./chain";
@@ -8,18 +9,19 @@ export interface PanelProps {
   refresh: () => Promise<void>;
   wallet: ReturnType<typeof useWallet>;
   stale: boolean;
+  onReadiness?: () => void;
 }
 export function ConnectGate({ wallet: w }: Pick<PanelProps, "wallet">) {
   return !w.account ? (
     <div className="info-box">
-      <p>Connect your wallet to use this action.</p>
+      <p>{tx('Connect your wallet to use this action.')}</p>
       <button
         className="button secondary"
         onClick={() => void w.connect()}
         disabled={w.connecting}
       >
         <Wallet size={17} />
-        {w.connecting ? "Waiting for wallet…" : "Connect wallet"}
+        {w.connecting ? tx("Waiting for wallet…") : tx("Connect wallet")}
       </button>
       {w.error && (
         <p role="alert" className="inline-error">
@@ -29,13 +31,11 @@ export function ConnectGate({ wallet: w }: Pick<PanelProps, "wallet">) {
     </div>
   ) : w.chainId !== 1 ? (
     <div className="info-box">
-      <p>Your wallet is on a different network.</p>
+      <p>{tx('Your wallet is on a different network.')}</p>
       <button
         className="button secondary"
         onClick={() => void w.switchNetwork()}
-      >
-        Switch to Ethereum
-      </button>
+      >{tx("Switch to Ethereum")}</button>
       {w.error && (
         <p role="alert" className="inline-error">
           {w.error}
@@ -95,8 +95,8 @@ export function TransactionNotice({
             ) : null}
             <strong>
               {action.error && action.status.stage !== "confirmed"
-                ? "Confirmation unavailable · inspect the receipt"
-                : labels[action.status.stage]}
+                ? tx("Confirmation unavailable · inspect the receipt")
+                : tx(labels[action.status.stage])}
             </strong>
           </div>
           <span>{action.status.label}</span>
@@ -105,7 +105,7 @@ export function TransactionNotice({
               <ExplorerLink
                 address={action.status.hash}
                 tx
-                label="View transaction receipt"
+                label={tx("View transaction receipt")}
               />
             </div>
           )}
@@ -113,7 +113,7 @@ export function TransactionNotice({
       )}
       {action.error && (
         <div className="inline-error" role="alert">
-          {action.error}
+          {t("İşlem tamamlanamadı. Ayrıntı: ", "Action could not be completed. Details: ")}{tx(action.error)}
         </div>
       )}
     </>
@@ -132,11 +132,11 @@ export function SnapshotNote({
   return (
     <p className="tiny">
       {snapshot
-        ? `Ethereum mainnet · block ${snapshot.blockNumber} · ${new Date(snapshot.timestamp * 1000).toLocaleString()}`
-        : "Waiting for verified Ethereum state."}
-      {stale ? " · Refresh required: the last read failed." : ""}
+        ? `Ethereum · ${t("blok", "block")} ${snapshot.blockNumber} · ${new Date(snapshot.timestamp * 1000).toISOString()}`
+        : t("Doğrulanmış Ethereum verisi bekleniyor.", "Waiting for verified Ethereum state.")}
+      {stale ? t(" · Son okuma başarısız; yenile.", " · Refresh required: the last read failed.") : ""}
       {snapshot && !snapshot.verified
-        ? " · Verification failed. New paid actions are disabled; recovery actions verify their own target."
+        ? t(" · Doğrulama başarısız. Yeni ücretli işlemler kapalı; kurtarma işlemleri kendi hedefini doğrular.", " · Verification failed. New paid actions are disabled; recovery actions verify their own target.")
         : ""}
     </p>
   );

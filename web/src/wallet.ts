@@ -1,3 +1,4 @@
+import { t, tx } from "./i18n";
 import { useCallback, useEffect, useState } from "react";
 import {
   createWalletClient,
@@ -29,12 +30,12 @@ export function useWallet() {
       const p = window.ethereum;
       if (!p)
         throw new Error(
-          "No wallet found. Open this site in an Ethereum wallet browser, or install an Ethereum browser wallet, then try again.",
+          t("Cüzdan bulunamadı. Siteyi Ethereum cüzdan tarayıcısında aç veya tarayıcıya Ethereum cüzdanı kur ve yeniden dene.", "No wallet found. Open this site in an Ethereum wallet browser, or install an Ethereum browser wallet, then try again."),
         );
       const accounts = await p.request({ method: "eth_requestAccounts" });
       if (!accounts[0])
         throw new Error(
-          "No account selected. Unlock your wallet and try again.",
+          t("Hesap seçilmedi. Cüzdan kilidini açıp yeniden dene.", "No account selected. Unlock your wallet and try again."),
         );
       setAccount(accounts[0]);
       setChainId(Number(await p.request({ method: "eth_chainId" })));
@@ -94,6 +95,6 @@ export function message(e: unknown) {
     x.message ||
     "The action could not be completed. Please try again.";
   if (/rejected|denied/i.test(raw))
-    return "This wallet request was declined. Any earlier confirmed approvals remain; inspect the transaction history before retrying.";
-  return raw.slice(0, 400);
+    return t("Cüzdan isteği reddedildi. Önceden doğrulanan izinler geçerlidir; yeniden denemeden işlem geçmişini incele.", "This wallet request was declined. Any earlier confirmed approvals remain; inspect the transaction history before retrying.");
+  return tx(raw).slice(0, 400);
 }

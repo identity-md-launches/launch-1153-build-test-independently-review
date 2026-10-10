@@ -1,3 +1,5 @@
+import { t, tx } from "./i18n";
+import { useClock } from "./project-state";
 import { useEffect, useState } from "react";
 import {
   ArrowDownUp,
@@ -37,8 +39,8 @@ import {
   useAction,
   type PanelProps,
 } from "./panel-common";
-export { OwnerPanel } from "./setup";
-export { LiveGames } from "./rounds";
+
+
 export function SwapPanel(p: PanelProps) {
   const { wallet: w, snapshot: s } = p;
   const [direction, setDirection] = useState<"buy" | "sell">("buy");
@@ -70,30 +72,20 @@ export function SwapPanel(p: PanelProps) {
     });
   return (
     <div className="panel">
-      <p className="panel-intro">
-        Trade in the original ETH/PRIO Uniswap v4 pool. Every quote simulates
-        the deployed hook and pool. Review the minimum you will receive before
-        signing.
-      </p>
+      <p className="panel-intro">{tx("Trade in the original ETH/PRIO Uniswap v4 pool. Every quote simulates the deployed hook and pool. Review the minimum you will receive before signing.")}</p>
       <div className="segmented">
         <button
           disabled={action.busy}
           aria-pressed={direction === "buy"}
           onClick={() => setDirection("buy")}
-        >
-          Buy PRIO
-        </button>
+        >{tx("Buy PRIO")}</button>
         <button
           disabled={action.busy}
           aria-pressed={direction === "sell"}
           onClick={() => setDirection("sell")}
-        >
-          Sell PRIO
-        </button>
+        >{tx("Sell PRIO")}</button>
       </div>
-      <label className="field">
-        You pay
-        <div className="input-row">
+      <label className="field">{tx("You pay")}<div className="input-row">
           <input
             name="swap-amount"
             disabled={action.busy}
@@ -105,32 +97,26 @@ export function SwapPanel(p: PanelProps) {
           />
           <span>{inputToken}</span>
         </div>
-        <small>
-          Wallet balance:{" "}
+        <small>{tx("Wallet balance:")}{" "}
           {fmt(direction === "buy" ? s?.account?.eth : s?.account?.prio)}{" "}
           {inputToken}
         </small>
       </label>
-      <label className="field">
-        Slippage tolerance (%)
-        <input
+      <label className="field">{tx("Slippage tolerance (%)")}<input
           name="slippage"
           disabled={action.busy}
           inputMode="decimal"
           value={slippage}
           onChange={(e) => setSlippage(e.target.value)}
         />
-        <small>
-          0.01%–5%. Ethereum gas is paid separately, including on a reverted
-          transaction.
-        </small>
+        <small>{tx("0.01%–5%. Ethereum gas is paid separately, including on a reverted transaction.")}</small>
       </label>
       <button
         className="button secondary full"
         onClick={() => void getQuote()}
         disabled={action.busy || !s?.verified || p.stale}
       >
-        {action.busy ? "Checking transaction…" : "Simulate quote"}
+        {action.busy ? tx("Checking transaction…") : tx("Simulate quote")}
         <ArrowDownUp size={16} />
       </button>
       {quote && (
@@ -138,17 +124,17 @@ export function SwapPanel(p: PanelProps) {
           <Badge tone={now < quote.expiresAt ? "cyan" : "yellow"}>
             {now < quote.expiresAt
               ? `Quote expires in ${Math.ceil((quote.expiresAt - now) / 1000)}s`
-              : "Quote expired · refresh required"}
+              : tx("Quote expired · refresh required")}
           </Badge>
           <dl className="metric-list">
             <div>
-              <dt>Expected output</dt>
+              <dt>{tx("Expected output")}</dt>
               <dd>
                 {fmt(quote.amountOut, 8)} {outputToken}
               </dd>
             </div>
             <div>
-              <dt>Minimum received</dt>
+              <dt>{tx("Minimum received")}</dt>
               <dd>
                 <strong>
                   {fmt(quote.minimumOut, 8)} {outputToken}
@@ -156,40 +142,35 @@ export function SwapPanel(p: PanelProps) {
               </dd>
             </div>
             <div>
-              <dt>LP fee</dt>
+              <dt>{tx("LP fee")}</dt>
               <dd>{quote.lpFeePpm / 10000}%</dd>
             </div>
             <div>
-              <dt>Platform protocol fee</dt>
+              <dt>{tx("Platform protocol fee")}</dt>
               <dd>{quote.protocolFeePpm / 10000}%</dd>
             </div>
             <div>
-              <dt>Combined pool fee</dt>
+              <dt>{tx("Combined pool fee")}</dt>
               <dd>{quote.combinedPoolFeePpm / 10000}%</dd>
             </div>
             <div>
-              <dt>Extra treasury hook fee</dt>
-              <dd>0.5% of the ETH leg</dd>
+              <dt>{tx("Extra treasury hook fee")}</dt>
+              <dd>{tx("0.5% of the ETH leg")}</dd>
             </div>
             <div>
-              <dt>Estimated hook fee</dt>
-              <dd>{fmt(quote.hookFeeEth, 9)} ETH</dd>
+              <dt>{tx("Estimated hook fee")}</dt>
+              <dd>{fmt(quote.hookFeeEth, 9)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>Website fee</dt>
+              <dt>{tx("Website fee")}</dt>
               <dd>0</dd>
             </div>
             <div>
-              <dt>Quote block</dt>
+              <dt>{tx("Quote block")}</dt>
               <dd>{quote.blockNumber.toString()}</dd>
             </div>
           </dl>
-          <p className="tiny">
-            Hook fee is rounded up to the next wei and already included in this
-            simulated output. Its ETH estimate assumes a full fill; partial
-            fills charge on the ETH actually exchanged. The router returns
-            unused ETH. Pool fees use Uniswap’s combined fee formula.
-          </p>
+          <p className="tiny">{tx("Hook fee is rounded up to the next wei and already included in this simulated output. Its ETH estimate assumes a full fill; partial fills charge on the ETH actually exchanged. The router returns unused ETH. Pool fees use Uniswap’s combined fee formula.")}</p>
         </div>
       )}
       <ConnectGate wallet={w} />
@@ -210,14 +191,8 @@ export function SwapPanel(p: PanelProps) {
                 setQuote(undefined);
               })
             }
-          >
-            Approve exact sell amount
-          </button>
-          <p className="tiny" style={{ marginTop: 10 }}>
-            Two possible wallet confirmations: exact PRIO approval to Permit2,
-            then exact router allowance expiring within 20 minutes. Obtain a
-            fresh quote after approval.
-          </p>
+          >{tx("Approve exact sell amount")}</button>
+          <p className="tiny" style={{ marginTop: 10 }}>{tx("Two possible wallet confirmations: exact PRIO approval to Permit2, then exact router allowance expiring within 20 minutes. Obtain a fresh quote after approval.")}</p>
         </>
       )}
       <button
@@ -232,30 +207,21 @@ export function SwapPanel(p: PanelProps) {
         }
         onClick={() =>
           void action.run(async (update) => {
-            if (!quote) throw new Error("Simulate a fresh quote first.");
+            if (!quote) throw new Error(tx("Simulate a fresh quote first."));
             await executeSwap(w.wallet!, w.account!, quote, update);
             setQuote(undefined);
           })
         }
-      >
-        Review swap in wallet
-        <ArrowRight size={16} />
+      >{tx("Review swap in wallet")}<ArrowRight size={16} />
       </button>
       <TransactionNotice action={action} />
       <details className="rules">
-        <summary>Pool, risks & allowances</summary>
-        <p>
-          Maximum swap input is the amount above, plus gas. Slippage limits the
-          minimum output; it does not guarantee profit or a fill. Simulation can
-          fail when the pool has no usable liquidity in the requested direction.
-          A failed quote never creates a transaction.
-        </p>
-        <ExplorerLink address={ADDRESSES.router} label="Universal Router" />
-        <p>
-          Pool key: native ETH /{" "}
-          <ExplorerLink address={ADDRESSES.token} label="PRIO" />, fee 12500,
-          tick spacing 60,{" "}
-          <ExplorerLink address={ADDRESSES.hook} label="TreasuryFeeHook" />.
+        <summary>{tx("Pool, risks & allowances")}</summary>
+        <p>{tx("Maximum swap input is the amount above, plus gas. Slippage limits the minimum output; it does not guarantee profit or a fill. Simulation can fail when the pool has no usable liquidity in the requested direction. A failed quote never creates a transaction.")}</p>
+        <ExplorerLink address={ADDRESSES.router} label={tx("Universal Router")} />
+        <p>{tx("Pool key: native ETH /")}{" "}
+          <ExplorerLink address={ADDRESSES.token} label={" PRIO "} />{tx(", fee 12500, tick spacing 60,")}{" "}
+          <ExplorerLink address={ADDRESSES.hook} label={tx("TreasuryFeeHook")} />.
         </p>
         {w.account && (
           <button
@@ -272,9 +238,7 @@ export function SwapPanel(p: PanelProps) {
                 ),
               )
             }
-          >
-            Revoke PRIO approval to Permit2
-          </button>
+          >{tx("Revoke PRIO approval to Permit2")}</button>
         )}
       </details>
       <SnapshotNote {...p} />
@@ -282,216 +246,26 @@ export function SwapPanel(p: PanelProps) {
   );
 }
 export function StakePanel(p: PanelProps) {
-  const { wallet: w, snapshot: s } = p;
-  const [tab, setTab] = useState<"stake" | "withdraw">("stake");
-  const [amount, setAmount] = useState("");
-  const action = useAction(p.refresh);
-  const [claimed, setClaimed] = useState<bigint>();
-  const funded = !!s && s.vault.rewardReserve > 0n;
-  return (
-    <div className="panel">
-      <p className="panel-intro">
-        Your PRIO stays in the deployed StakingVault. Rewards stream only when
-        the treasury has supplied funds. You can withdraw whenever the contract
-        permits.
-      </p>
-      <div className="balance-row">
-        <span>
-          Your staked PRIO<strong>{fmt(s?.account?.staked)}</strong>
-        </span>
-        <span>
-          Claimable PRIO<strong>{fmt(s?.account?.earned, 6)}</strong>
-        </span>
-      </div>
-      <div className="info-box">
-        <strong>
-          {s
-            ? funded
-              ? "Rewards have funding."
-              : "Staking reward funding is zero."
-            : "Checking reward funding…"}
-        </strong>
-        <p>
-          {s
-            ? `${fmt(s.vault.rewardReserve)} PRIO in the reward reserve. ${fmt(s.vault.totalStaked)} PRIO staked across all wallets.`
-            : "Live funding will appear when the RPC responds."}{" "}
-          No fixed APY or guaranteed yield.
-        </p>
-      </div>
-      <div className="segmented">
-        <button aria-pressed={tab === "stake"} onClick={() => setTab("stake")}>
-          Stake PRIO
-        </button>
-        <button
-          aria-pressed={tab === "withdraw"}
-          onClick={() => setTab("withdraw")}
-        >
-          Withdraw PRIO
-        </button>
-      </div>
-      <label className="field">
-        {tab === "stake" ? "Amount to stake" : "Amount to withdraw"}
-        <input
-          name="staking-amount"
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-          autoComplete="off"
-        />
-        <small>
-          Available:{" "}
-          {fmt(tab === "stake" ? s?.account?.prio : s?.account?.staked)} PRIO
-        </small>
-      </label>
-      <ConnectGate wallet={w} />
-      <div className="action-row">
-        {tab === "stake" && (
-          <button
-            className="button secondary"
-            disabled={!ready(p) || action.busy}
-            onClick={() =>
-              void action.run((update) => {
-                const value = parseEther(amount);
-                if (value <= 0n)
-                  throw new Error("Enter a positive PRIO amount.");
-                return approveExact(
-                  w.wallet!,
-                  w.account!,
-                  ADDRESSES.vault,
-                  value,
-                  update,
-                );
-              })
-            }
-          >
-            Approve exact amount
-          </button>
-        )}
-        <button
-          className="button primary"
-          disabled={
-            !(tab === "withdraw" ? recoveryReady(p) : ready(p)) || action.busy
-          }
-          onClick={() =>
-            void action.run((update) => {
-              const value = parseEther(amount);
-              if (value <= 0n) throw new Error("Enter a positive PRIO amount.");
-              if (tab === "stake" && (s?.account?.vaultAllowance ?? 0n) < value)
-                throw new Error("Approve the exact staking amount first.");
-              return runContractAction(
-                w.wallet!,
-                w.account!,
-                "vault",
-                tab === "stake" ? "stake" : "withdraw",
-                [value],
-                update,
-              );
-            })
-          }
-        >
-          {tab === "stake" ? "Stake PRIO" : "Withdraw PRIO"}
-          <ArrowRight size={16} />
-        </button>
-      </div>
-      <div className="action-row">
-        <button
-          className="button secondary"
-          disabled={
-            !recoveryReady(p) || action.busy || s?.account?.earned === 0n
-          }
-          onClick={() =>
-            void action.run(async (update) => {
-              setClaimed(undefined);
-              const receipt = await runContractAction(
-                w.wallet!,
-                w.account!,
-                "vault",
-                "claim",
-                [],
-                update,
-              );
-              for (const log of receipt.logs) {
-                try {
-                  if (log.address.toLowerCase() !== ADDRESSES.vault) continue;
-                  const e = decodeEventLog({
-                    abi: ABIS.vault,
-                    data: log.data,
-                    topics: log.topics,
-                  });
-                  if (e.eventName === "Claimed") {
-                    const args = e.args as unknown as Record<string, unknown>;
-                    if (
-                      String(args.user).toLowerCase() !==
-                      w.account?.toLowerCase()
-                    )
-                      continue;
-                    const value = args.amount;
-                    if (typeof value === "bigint" && value > 0n)
-                      setClaimed(value);
-                  }
-                } catch {}
-              }
-            })
-          }
-        >
-          Claim funded rewards
-        </button>
-        <button
-          className="text-button"
-          disabled={!recoveryReady(p) || action.busy}
-          onClick={() =>
-            void action.run((update) =>
-              approveExact(w.wallet!, w.account!, ADDRESSES.vault, 0n, update),
-            )
-          }
-        >
-          Revoke vault approval
-        </button>
-      </div>
-      <TransactionNotice action={action} />
-      {claimed !== undefined && (
-        <div className="confirmed-prize" role="status">
-          Confirmed reward claim: {fmt(claimed)} PRIO.
-        </div>
-      )}
-      <details className="rules">
-        <summary>Funding and withdrawal details</summary>
-        <dl className="metric-list">
-          <div>
-            <dt>Reward rate</dt>
-            <dd>
-              {fmt(s ? s.vault.rewardRate / 10n ** 18n : undefined, 9)} PRIO /
-              second
-            </dd>
-          </div>
-          <div>
-            <dt>Stream ends</dt>
-            <dd>
-              {s && s.vault.periodFinish > 0n
-                ? new Date(Number(s.vault.periodFinish) * 1000).toLocaleString()
-                : "No reward stream"}
-            </dd>
-          </div>
-          <div>
-            <dt>Rewards owed</dt>
-            <dd>{fmt(s?.vault.rewardsOwed)} PRIO</dd>
-          </div>
-        </dl>
-        <p>
-          Approvals are limited to the amount you enter. Staking principal and
-          Arena escrow are held in separate contracts. Contract and market risks
-          remain. Withdrawal and reward claims do not require Phase A/B or a
-          running server operator.
-        </p>
-        <ExplorerLink
-          address={ADDRESSES.vault}
-          label="Inspect the deployed vault"
-        />
-      </details>
-      <SnapshotNote {...p} />
-    </div>
-  );
+  const {wallet:w,snapshot:s}=p;
+  const [tab,setTab]=useState<"stake"|"withdraw">("stake");
+  const [amount,setAmount]=useState("");
+  const [claimed,setClaimed]=useState<bigint>();
+  const action=useAction(p.refresh);
+  const now=useClock();
+  const streaming=!!s&&s.vault.rewardReserve>0n&&s.vault.rewardRate>0n&&Number(s.vault.periodFinish)>now;
+  const known=!!s&&s.verified&&!p.stale;
+  const value=()=>{if(!/^\d+(\.\d{1,18})?$/.test(amount))throw new Error(t("En fazla 18 ondalıklı pozitif PRIO miktarı gir.","Enter a positive PRIO amount with up to 18 decimals."));const n=parseEther(amount);if(n<=0n)throw new Error(t("Sıfırdan büyük PRIO miktarı gir.",tx("Enter a positive PRIO amount.")));return n;};
+  return <div className="panel"><p className="panel-intro">{t("PRIO, mevcut StakingVault sözleşmesinde tutulur. Yatırmak gelir yaratmaz; sadece gerçekten fonlanan ödüller dağıtılır. Çekim ve talep operatörden bağımsızdır.","PRIO is held by the existing StakingVault. Depositing does not create income; only actually funded rewards are distributed. Withdrawals and claims are independent of the operator.")}</p>
+    <div className="info-box staking-funding"><strong>{!known?t("Ödül durumu doğrulanamadı; zincir verisini yenile.","Reward status is unverified; refresh chain data."):streaming?t("Fonlanmış ödül akışı etkin.","A funded reward stream is active."):t("Yatırma çalışıyor; ödüller şu anda fonlanmıyor veya akmıyor.","Deposits work; rewards are not currently funded or streaming")}</strong><p>{t("Sabit APY veya getiri sözü yok. Rezerv, geçmişten kalan yükümlülükleri içerebilir; yeni ödül akışıyla aynı şey değildir.","No fixed APY or promised yield. A reserve may include past liabilities; it is not the same as a new reward stream.")}</p></div>
+    <dl className="metric-list stake-metrics"><div><dt>{t("Gerçek ödül rezervi","Actual reward reserve")}</dt><dd>{fmt(known?s.vault.rewardReserve:undefined,8)}{" PRIO "}</dd></div><div><dt>{t("Ayrılmış ödül yükümlülüğü","Reserved reward liabilities")}</dt><dd>{fmt(known?s.vault.rewardsOwed:undefined,8)}{" PRIO "}</dd></div><div><dt>{t("Akış durumu","Stream status")}</dt><dd>{!known?"—":streaming?t("Etkin","Active"):t("Etkin akış yok","No active stream")}</dd></div><div><dt>{t("Ödül hızı","Reward rate")}</dt><dd>{fmt(known?s.vault.rewardRate:undefined,9,36)}{" PRIO / s "}</dd></div><div><dt>{t("Akış bitişi","Stream ends")}</dt><dd>{known&&s.vault.periodFinish>0n?new Date(Number(s.vault.periodFinish)*1000).toISOString():t("Akış yok","No stream")}</dd></div><div><dt>{t("Talep edilebilir ödülün","Your claimable reward")}</dt><dd>{w.account?`${fmt(known?s.account?.earned:undefined,8)} PRIO`:t("Görmek için cüzdan bağla","Connect to read")}</dd></div><div><dt>{t("Yatırdığın PRIO","Your staked PRIO")}</dt><dd>{fmt(s?.account?.staked,8)}</dd></div></dl>
+    <div className="segmented"><button disabled={action.busy} aria-pressed={tab==="stake"} onClick={()=>setTab("stake")}>{t("PRIO yatır","Stake PRIO")}</button><button disabled={action.busy} aria-pressed={tab==="withdraw"} onClick={()=>setTab("withdraw")}>{t("PRIO çek","Withdraw PRIO")}</button></div>
+    <label className="field">{tab==="stake"?t("Yatırılacak miktar","Amount to stake"):t("Çekilecek miktar","Amount to withdraw")}<input name="staking-amount" inputMode="decimal" value={amount} disabled={action.busy} onChange={e=>setAmount(e.target.value)} placeholder="0.00" autoComplete="off" aria-describedby="stake-amount-help"/><small id="stake-amount-help">{t("Kullanılabilir","Available")}: {fmt(tab==="stake"?s?.account?.prio:s?.account?.staked,8)}{" PRIO. "}{t("Onay yalnızca girdiğin miktar içindir; ETH gas ayrıca ödenir.","Approval is only for the entered amount; ETH gas is separate.")}</small></label>
+    <ConnectGate wallet={w}/><div className="action-row">{tab==="stake"&&<button className="button secondary" disabled={!ready(p)||action.busy} onClick={()=>void action.run(update=>approveExact(w.wallet!,w.account!,ADDRESSES.vault,value(),update))}>{t("Tam miktarı onayla","Approve exact amount")}</button>}<button className="button primary" disabled={!(tab==="withdraw"?recoveryReady(p):ready(p))||action.busy} onClick={()=>void action.run(update=>{const n=value();if(tab==="stake"&&(s?.account?.vaultAllowance??0n)<n)throw new Error(t("Önce tam yatırma miktarını onayla.","Approve the exact deposit amount first."));return runContractAction(w.wallet!,w.account!,"vault",tab==="stake"?"stake":"withdraw",[n],update);})}>{tab==="stake"?t("PRIO yatırmayı onayla","Confirm PRIO deposit"):t("PRIO çek","Withdraw PRIO")}<ArrowRight size={16}/></button></div>
+    <div className="action-row"><button className="button secondary" disabled={!recoveryReady(p)||action.busy||s?.account?.earned===0n} onClick={()=>void action.run(async update=>{setClaimed(undefined);const receipt=await runContractAction(w.wallet!,w.account!,"vault","claim",[],update);for(const log of receipt.logs){try{if(log.address.toLowerCase()!==ADDRESSES.vault)continue;const e=decodeEventLog({abi:ABIS.vault,data:log.data,topics:log.topics});const a=e.args as {user?:string;amount?:bigint};if(e.eventName==="Claimed"&&a.user?.toLowerCase()===w.account?.toLowerCase()&&a.amount&&a.amount>0n)setClaimed(a.amount);}catch{}}})}>{t("Fonlanmış ödülü talep et","Claim funded rewards")}</button><button className="text-button" disabled={!recoveryReady(p)||action.busy} onClick={()=>void action.run(update=>approveExact(w.wallet!,w.account!,ADDRESSES.vault,0n,update))}>{t("Kasa onayını kaldır","Revoke vault approval")}</button></div>
+    {s?.account?.earned===0n&&<p className="tiny">{t("Şu anda talep edilebilir ödülün 0 PRIO.","Your currently claimable reward is 0 PRIO.")}</p>}
+    <TransactionNotice action={action}/>{claimed!==undefined&&<div className="confirmed-prize" role="status">{t("Makbuzla doğrulanan ödül","Receipt-confirmed reward")}: {fmt(claimed,8)}{" PRIO. "}</div>}
+    <details className="rules"><summary>{t("Rezerv ve çekim ayrıntıları","Reserve and withdrawal details")}</summary><p>{t("rewardsOwed geçmişte kazanılmış ve hâlâ ayrılmış akış yükümlülüklerini içerir. Süresi bitmiş akış yeni ödül üretmez. Çekim ve ödül talebi A/B ayarlarına veya operatöre bağlı değildir.","rewardsOwed includes accrued rewards and remaining reserved stream liabilities. An expired stream creates no new rewards. Withdrawal and reward claims do not depend on Phase A/B or the operator.")}</p><p>{t("Dağıtılmış kasanın rewardRate değeri, wei/s üzerine 10¹⁸ hassasiyet ekler. Burada 36 basamak tek formatlama adımında çevrilir; token bakiyeleri 18 basamaktır.","The deployed vault's rewardRate adds 10¹⁸ precision to wei/s. It is formatted once at 36 decimals here; token balances use 18 decimals.")}</p><ExplorerLink address={ADDRESSES.vault} label={t("Mevcut kasayı incele","Inspect the existing vault")}/></details><SnapshotNote {...p}/>
+  </div>;
 }
 export function EconomyPanel(p: PanelProps) {
   const s = p.snapshot;
@@ -512,114 +286,82 @@ export function EconomyPanel(p: PanelProps) {
       );
     }
   }, [s, to]);
-  const claims = (events || []).filter(
-    (e) => e.contract === "arena" && e.name === "Claimed",
-  );
-  const leaderboard = Object.entries(
-    claims.reduce<Record<string, bigint>>((acc, e) => {
-      const player = String(e.args.player);
-      acc[player] = (acc[player] || 0n) + BigInt(String(e.args.amount));
-      return acc;
-    }, {}),
-  ).sort((a, b) => (a[1] > b[1] ? -1 : 1));
   return (
     <div className="panel">
-      <p className="panel-intro">
-        Follow the fee-funded economy directly from deployed state and events.
-        Figures are on-chain balances and allocations, not projected earnings.
-      </p>
+      <p className="panel-intro">{tx("Follow the fee-funded economy directly from deployed state and events. Figures are on-chain balances and allocations, not projected earnings.")}</p>
       <div className="panel-grid">
         <div className="sub-panel">
-          <h3>Where swap fees go</h3>
-          <p>
-            The immutable hook collects 0.5% of the ETH leg. Treasury allocation
-            first fills the gas reserve, capped at 10% of income and the
-            owner-set reserve target (maximum 2 ETH). Remaining funds split:
-          </p>
+          <h3>{tx("Where swap fees go")}</h3>
+          <p>{tx("The immutable hook collects 0.5% of the ETH leg. Treasury allocation first fills the gas reserve, capped at 10% of income and the owner-set reserve target (maximum 2 ETH). Remaining funds split:")}</p>
           <dl className="metric-list">
             <div>
-              <dt>IMD for oracle work</dt>
+              <dt>{tx("IMD for oracle work")}</dt>
               <dd>30%</dd>
             </div>
             <div>
-              <dt>PRIO purchases</dt>
+              <dt>{tx("PRIO purchases")}</dt>
               <dd>30%</dd>
             </div>
             <div>
-              <dt>Owner allocation</dt>
+              <dt>{tx("Owner allocation")}</dt>
               <dd>40%</dd>
             </div>
           </dl>
-          <p>
-            Purchased PRIO splits equally between staking and games. Until
-            purchases and funding happen, rewards remain unfunded.
-          </p>
+          <p>{tx("Purchased PRIO splits equally between staking and games. Until purchases and funding happen, rewards remain unfunded.")}</p>
         </div>
         <div className="sub-panel">
-          <h3>Live treasury</h3>
+          <h3>{tx("Live treasury")}</h3>
           <dl className="metric-list">
             <div>
-              <dt>Total fee income</dt>
-              <dd>{fmt(s?.treasury.totalIncome, 8)} ETH</dd>
+              <dt>{tx("Total fee income")}</dt>
+              <dd>{fmt(s?.treasury.totalIncome, 8)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>Unallocated income</dt>
-              <dd>{fmt(s?.treasury.unallocated, 8)} ETH</dd>
+              <dt>{tx("Unallocated income")}</dt>
+              <dd>{fmt(s?.treasury.unallocated, 8)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>Gas reserve</dt>
-              <dd>{fmt(s?.treasury.reserve, 8)} ETH</dd>
+              <dt>{tx("Gas reserve")}</dt>
+              <dd>{fmt(s?.treasury.reserve, 8)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>IMD purchase budget</dt>
-              <dd>{fmt(s?.treasury.imdBudget, 8)} ETH</dd>
+              <dt>{tx("IMD purchase budget")}</dt>
+              <dd>{fmt(s?.treasury.imdBudget, 8)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>PRIO purchase budget</dt>
-              <dd>{fmt(s?.treasury.prioBudget, 8)} ETH</dd>
+              <dt>{tx("PRIO purchase budget")}</dt>
+              <dd>{fmt(s?.treasury.prioBudget, 8)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>Owner budget</dt>
-              <dd>{fmt(s?.treasury.ownerBudget, 8)} ETH</dd>
+              <dt>{tx("Owner budget")}</dt>
+              <dd>{fmt(s?.treasury.ownerBudget, 8)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>Hook ETH awaiting delivery</dt>
-              <dd>{fmt(s?.hook.pendingEth, 8)} ETH</dd>
+              <dt>{tx("Hook ETH awaiting delivery")}</dt>
+              <dd>{fmt(s?.hook.pendingEth, 8)}{" ETH "}</dd>
             </div>
             <div>
-              <dt>Hook ETH claims</dt>
-              <dd>{fmt(s?.hook.pendingClaims, 8)} ETH</dd>
+              <dt>{tx("Hook ETH claims")}</dt>
+              <dd>{fmt(s?.hook.pendingClaims, 8)}{" ETH "}</dd>
             </div>
           </dl>
         </div>
       </div>
       <div className="info-box">
-        <strong>Agent activity requires a real operator feed.</strong>
-        <p>
-          This static website does not host the server operator or make paid IMD
-          API calls. The on-chain rounds panel accepts a fresh, executor-signed
-          public status feed. No activity is invented when that feed is absent.
-        </p>
+        <strong>{tx("Agent activity requires a real operator feed.")}</strong>
+        <p>{tx("This static website does not host the server operator or make paid IMD API calls. The project uses one public endpoint for fresh, executor-signed status reports, configured when the separate server is available. No activity is invented when that feed is absent.")}</p>
       </div>
-      <h3>On-chain activity & leaderboard</h3>
-      <p className="tiny" style={{ marginTop: 10 }}>
-        Choose an Ethereum block window (maximum 50,000 blocks). Leaderboard
-        ranks confirmed Arena claim amounts in that window; these include
-        returned escrow and are not profit.
-      </p>
+      <h3>{tx("On-chain activity")}</h3>
+      <p className="tiny" style={{ marginTop: 10 }}>{tx("Choose an Ethereum block window (maximum 50,000 blocks). Seasonal prize rankings are available in the lobby; these event records are not a profit ranking.")}</p>
       <div className="panel-grid">
-        <label className="field">
-          From block
-          <input
+        <label className="field">{tx("From block")}<input
             name="from-block"
             inputMode="numeric"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
           />
         </label>
-        <label className="field">
-          Through block
-          <input
+        <label className="field">{tx("Through block")}<input
             name="to-block"
             inputMode="numeric"
             value={to}
@@ -633,52 +375,18 @@ export function EconomyPanel(p: PanelProps) {
         onClick={() =>
           void action.run(async () => {
             if (!/^\d+$/.test(from) || !/^\d+$/.test(to))
-              throw new Error("Enter whole block numbers.");
+              throw new Error(tx("Enter whole block numbers."));
             setEvents(await readActivity(BigInt(from), BigInt(to)));
           })
         }
       >
-        {action.busy ? "Reading event logs…" : "Load real activity"}
+        {action.busy ? tx("Reading event logs…") : tx("Load real activity")}
         <Radio size={16} />
       </button>
       <TransactionNotice action={action} />
       {events && (
         <>
-          <h4>Leaderboard · confirmed claims</h4>
-          {leaderboard.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Player</th>
-                    <th>Claimed PRIO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.map(([player, total], i) => (
-                    <tr key={player}>
-                      <td>{i + 1}</td>
-                      <td>
-                        <ExplorerLink address={player} />
-                      </td>
-                      <td>{fmt(total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <Trophy size={28} />
-              <h3>No claims in this block window.</h3>
-              <p>
-                The leaderboard starts with real settled-round claims. Practice
-                scores are never added here.
-              </p>
-            </div>
-          )}
-          <h4>Contract events · {events.length}</h4>
+          <h4>{tx("Contract events ·")}{events.length}</h4>
           {events.length ? (
             <ul className="event-list">
               {[...events]
@@ -687,16 +395,16 @@ export function EconomyPanel(p: PanelProps) {
                 .map((e) => (
                   <li key={`${e.transactionHash}-${e.logIndex}`}>
                     <span>
-                      <strong>{e.name}</strong> · {e.contract} · block{" "}
+                      <strong>{e.name}</strong> · {e.contract}{tx("· block")}{" "}
                       {e.blockNumber.toString()}
                     </span>
                     <ExplorerLink
                       address={e.transactionHash}
                       tx
-                      label="Receipt"
+                      label={tx("Receipt")}
                     />
                     <details>
-                      <summary>Event data</summary>
+                      <summary>{tx("Event data")}</summary>
                       <pre className="code">
                         {JSON.stringify(
                           e.args,
@@ -709,18 +417,12 @@ export function EconomyPanel(p: PanelProps) {
                 ))}
             </ul>
           ) : (
-            <p className="tiny">
-              No events were returned in the selected window. Try a wider window
-              within the 50,000-block limit.
-            </p>
+            <p className="tiny">{tx("No events were returned in the selected window. Try a wider window within the 50,000-block limit.")}</p>
           )}
         </>
       )}
-      <h4>Fee delivery · permissionless maintenance</h4>
-      <p className="tiny">
-        These calls move already-collected hook fees into the treasury and
-        allocate received income. They do not create rewards by themselves.
-      </p>
+      <h4>{tx("Fee delivery · permissionless maintenance")}</h4>
+      <p className="tiny">{tx("These calls move already-collected hook fees into the treasury and allocate received income. They do not create rewards by themselves.")}</p>
       <ConnectGate wallet={p.wallet} />
       <div className="action-row">
         <button
@@ -743,9 +445,7 @@ export function EconomyPanel(p: PanelProps) {
               ),
             )
           }
-        >
-          Flush pending ETH
-        </button>
+        >{tx("Flush pending ETH")}</button>
         <button
           className="button secondary"
           disabled={
@@ -766,9 +466,7 @@ export function EconomyPanel(p: PanelProps) {
               ),
             )
           }
-        >
-          Allocate received fees
-        </button>
+        >{tx("Allocate received fees")}</button>
       </div>
       <SnapshotNote {...p} />
     </div>

@@ -1,6 +1,6 @@
 # PRISM RIOT website: deployed contract verification
 
-This website uses the existing Ethereum mainnet economy. No deployment, transaction or signature was made by the website implementation worker. The owner still needs to configure and fund the application, and operate a separate server, before paid play can open. Contract deployment is not configuration.
+This website uses the existing Ethereum mainnet economy. No public transaction or on-chain deployment was made by this website update. Funded transaction tests and ephemeral signatures ran only on a local Anvil fork. The owner still needs to configure and fund the application, and operate a separate server, before paid play can open. Contract deployment is not configuration.
 
 ## Source and ABI provenance
 
@@ -21,7 +21,7 @@ The pinned predecessor deployment file supplies no expected application ABI hash
 
 ## Mainnet observations
 
-The full reproducible read-only report is [`docs/chain-verification.json`](chain-verification.json), observed on Ethereum chain 1 at **block 26160349**. Every report read uses that same block. Subsequent frontend integration checks used **block 26160354**. Values below are observations, not promises about later state.
+The full reproducible read-only report is [`docs/chain-verification.json`](chain-verification.json), observed on Ethereum chain 1 at **block 26160822**. Every report read uses that same block. Subsequent frontend integration checks used **block 26160827**. Values below are observations, not promises about later state.
 
 | Contract | Address | Runtime bytes | Accepted compiled runtime |
 | --- | --- | ---: | --- |
@@ -40,11 +40,15 @@ The exact live pool key is `(native ETH, PRIO, 12500, 60, TreasuryFeeHook)`. Enc
 
 The live LP fee was **1.25%**, the packed directional protocol fee was **0**, and the immutable additional hook fee was **0.5% of the ETH pool leg, rounded upward**. The interface reads the protocol fee freshly rather than assuming it remains zero. The frontend itself adds no fee. ETH gas is separate. For exact-input buys, the gross input contains the hook fee; its full-fill estimate is `ceil(input × 50 / 10050)`. Quotes simulate the actual hook and include all pool and hook effects. Displayed hook amounts are estimates because a partial fill can change the ETH leg.
 
-At the observed block, the current tick was 887271 and active liquidity was zero. This did **not** mean buys were impossible: the quoter simulated **0.0001 ETH → 9,810.034699761563432879 PRIO**. A **100 PRIO sell reverted** with selector `0x6190b2b0`. The interface propagates quote failures and does not fabricate a price or enable a failed trade. Pool conditions may change; users must obtain a fresh quote.
+Fresh reads confirmed **all nine Phase A bindings correct** (also captured in `readiness-snapshot.json`, block 26160686). The completed hook/treasury/PRIO/sinks/funder/Arena/adapter bindings must be preserved. The frontend skips all seven completed Phase A transactions.
 
-The hook's pending fee ETH was **393544776119406 wei**, with no delivered fee income. Treasury hook/PRIO/sinks, hook treasury, vault reward funder, Arena oracle and adapter Arena were still unset. Treasury allocations and budgets, staking reward funding, prizes, rounds and paid requests were zero or disabled. The operator signer returned `0x5598aa9146215bc13eb26f2c692ad1461fd32982`; that attestation signer is distinct from an operator executor. No executor wallet is guessed or supplied by this website.
+The hook held 393544776119406 wei of pending fees. Treasury `totalIncome`, reserve and operating balances were zero. Both executors, treasury IMD, adapter Intake/payment, pool/floors and callback/paid settings were unset or disabled. Arena roundCount and prize pools were zero. Staking had 10,000,000 PRIO principal, but zero rewardReserve, rewardsOwed and rewardRate. Configured spending *limits* are distinct from funded budgets; for example maxSpendPerSwap/spendPerWindow were 1 ETH even though spendable balances were zero. These values are not browser defaults.
 
-The frontend also read the accepted document's Intake `0x1397434cd35e8a9c8ac312a61d3a285eb31dea56`. At block 26160354, `priceOf(bytes32("oracle.request@oracle-1"), IMD)` was **0.5 IMD**. The accepted document's ETH/IMD candidate `(10000, 200, no hook)` was re-read and simulated: **0.0001 ETH → 0.030906180678065717 IMD**. That pool remains explicitly labeled a candidate requiring owner review; it is not silently configured. Price floors and operating limits must be reviewed by the owner against fresh data.
+The current PRIO pool tick was 887271 with zero in-range liquidity, but a 0.0001 ETH buy quote and exact Universal Router buy still simulated successfully by crossing into liquidity. The tested sell quote reverted; no price is fabricated on failure. Integration checks at block 26160827 read an Intake price of 0.5 IMD and simulated the documented candidate ETH/IMD venue. Pool and protocol data are re-read before owner review; no pool or price floor is automatically configured. Runtime, receipt and full simulation observations are in the JSON report.
+
+## Staking rate scale
+
+The accepted deployed `StakingVault` computes `rewardRate = amount * 1e18 / duration`, where `amount` is already a token wei balance. The internal rate therefore has **36 decimal places** relative to PRIO/second. The old presentation divided before calling an 18-decimal formatter. The new precise formatter converts once with `fmt(rewardRate, 9, 36)`; token balances still use the default 18 decimals. It performs no lossy Number conversion and shows nonzero dust explicitly. A funded local-fork rate of `189025768306811092460045138888888888` renders `0.189025768 PRIO / s`. Merely deleting the extra division while retaining an 18-decimal rate formatter would overstate this deployed contract's rate by 10^18. The accepted source, runtime match, unit test and funded fork support this distinction.
 
 ## Transaction behavior
 
@@ -64,7 +68,7 @@ Entry locks 102 PRIO: 100 escrow and a 2 PRIO fee. A wrong reveal returns 90 PRI
 
 ## Separate operator's public status protocol
 
-Static IPFS hosting does not host the operator. By default, paid entries remain disabled. To demonstrate real server readiness, an operator may publish a **public HTTPS JSON endpoint**, enable CORS for the site, and let a visitor enter its URL. Requests omit cookies, credentials and the referring URL. There are no API keys, signed transactions or unrevealed game secrets in this request. The site does not make paid IMD API calls.
+Static IPFS hosting does not host the operator. By default, paid entries remain disabled. To demonstrate real server readiness, an operator may publish a **public HTTPS JSON endpoint**, enable CORS for the site, and configure its single URL in `web/public/project.json` before rebuilding. Players never enter a server URL. The current value is `null` because no separately hosted operator endpoint was supplied or verified. Requests omit cookies, credentials and the referring URL. There are no API keys, signed transactions or unrevealed game secrets in this request. The site does not make paid IMD API calls.
 
 The response shape is the exported TypeScript `SignedOperatorStatus` in `web/src/chain/operator.ts`:
 
@@ -95,26 +99,18 @@ The response shape is the exported TypeScript `SignedOperatorStatus` in `web/src
 }
 ```
 
-Serialize the payload using recursively sorted JSON object keys and unchanged array order, with no whitespace, prefixed exactly by `PRISM RIOT operator status v1\n`. `operatorStatusMessage(payload)` implements this format. The **current configured executor**, which must match on both treasury and adapter, signs that message on the separate server. No signing key belongs in this repository's frontend. The website recovers the signer, checks the chain and Arena, requires a report no older than five minutes and no more than 30 seconds in the future, requires a live expiration within five minutes of issue, and checks the reported block is no more than 32 blocks behind its fresh chain snapshot.
+Serialize the payload using recursively sorted JSON object keys and unchanged array order, with no whitespace, prefixed exactly by `PRISM RIOT operator status v1\n`. `operatorStatusMessage(payload)` implements this format. The **current configured executor**, which must match on both treasury and adapter, signs that message on the separate server. No signing key belongs in this repository's frontend. Optional `reviewedChallenges` bind reviewed IMD proposal IDs/titles to exact question, body and future-rules hashes; see `OPERATOR.md`. The website recovers the signer, checks the chain and Arena, requires a report no older than five minutes and no more than 30 seconds in the future, requires a live expiration within five minutes of issue, and checks the reported block is no more than 32 blocks behind its fresh chain snapshot.
 
 Valid signature alone does not enable paid entry. Deployment verification, all Phase A bindings, Phase B configuration, available on-chain spend windows, fee-funded budgets, adapter IMD, funded active prizes, the operator's paid switch and its remaining request/gas/IMD budgets must all pass. The exact signed report and a fresh snapshot are rechecked immediately before entry. A particular round must also be open, funded, before its commitment deadline and use the deployed adapter. Operator activity appears only from a verified signed report and remains attributed to that server; receipt/event data is the separate evidence of chain outcomes.
 
+## Round management and seasonal evidence
+
+The owner-only panel uses the compiled `OracleAdapter.pinQuestion` and `Arena.createRound` ABIs. It verifies owner/runtime/Phase A, reviewed Phase B, actual available fee-funded budgets, fresh signed operator service readiness and an unallocated prize at least as large as the draft. A separate service-readiness check allows the *first* round without pretending locked prizes already exist; player entry still requires an actual funded open round. The question's `notBefore` must equal its commit deadline. Correct existing pins are skipped; conflicting pins stop. Each transaction is simulated and receipt/readback checked against the exact immutable fields. `rulesHash` is reproducible from canonical `roundRules()` JSON including scoring, public body, mode, thresholds, deadlines and prize.
+
+UTC calendar-month rankings use finalized Arena `Claimed` events beginning at application deployment block 26154915. Each event is checked against its successful receipt and canonical block, deployed runtime, settled round, claimed entry and exact payout. Scores sum only `max(claimAmount - 100 PRIO, 0)`; refunds and returned principal are excluded. Equal totals sort by address. An interrupted history read returns no partial ranking. This is public-chain verification through the configured RPC, not an independent consensus/light client.
+
 ## Commands executed and results
 
-| Command/check | Actual result |
-| --- | --- |
-| Download accepted GitHub archive and read accepted deployment/configuration source | Success; accepted commit identified above |
-| `command -v forge`, `command -v slither`, `command -v cast`, `command -v aderyn` | Forge and Slither present; Cast and Aderyn absent in this task environment |
-| `forge build --root /tmp/prism-accepted` | Success; 132 files compiled, existing warnings noted above |
-| `node web/scripts/verify-chain.mjs /tmp/prism-accepted` | Success; source/ABI/runtime, owners, receipts and actual pool recorded at block 26160349 |
-| Isolated strict TypeScript check of `web/src/chain` using `test/scratch/chain-tsconfig.json` | Passed after fixing a nested ABI typing issue; this temporary checker is not a deliverable |
-| `node web/scripts/check-chain.mjs` | **14 checks passed**, mainnet block 26160354; real quoter, exact router buy, owner A1 simulation, real history, Phase B live protocol, gates and recovery |
-| Initial independent `web/tests/security.test.ts` review | **23 tests passed**; reveal storage-key mismatch found and repaired before passing |
-| Final `npm run typecheck --prefix web` | **Passed**, full frontend source after all safety fixes |
-| Final `npm test --prefix web` | **33 tests passed** across independent security and recovery suites; no network or real wallet signatures |
-| Public transaction broadcast / real wallet signature | **Not executed**; owner and player transactions require their own wallet confirmation |
-| Contract test suite / Slither / Aderyn | **Not executed for this frontend change**; no Solidity modification. Aderyn unavailable. Runtime verification is not a security audit or proof of contract safety. |
+Freshly compiled accepted source and all six deployed runtimes/ABIs matched at block **26160822**. Both deployment receipts succeeded. The 12 read-only integration checks passed at **26160827**; 40 unit tests passed. The production funded path was then exercised on a local fork at **26160788**, including exact approvals, owner pin/create, commitments, reveals, attestation/settlement, payouts, missed reveals and cancellation refunds. No public transaction was broadcast. See `fork-results.json` for fixture limitations and `VALIDATION.md` for actual commands.
 
-The chain integration checks are runnable after `npm ci --prefix web` with `node web/scripts/check-chain.mjs`. They require live RPC access and intentionally assert the observed unconfigured state; after owner configuration, those state-specific expectations need to be updated. `verify-chain.mjs` accepts a freshly compiled accepted-source directory for a full runtime comparison; without that argument it checks against the bundled verified runtime baseline. It also embeds the two pinned expected ABI hashes so it remains usable after assignment input files are removed.
-
-Production build, rendered wallet tests, mobile/desktop screenshots, and six-domain interface review are recorded in the website's delivery validation documentation. This chain report does not claim those checks on their behalf.
+The reproducible `verify-chain.mjs` accepts a compiled accepted-source directory; without it, the bundled verified runtime baseline is checked. `check-chain.mjs` reads current configuration without assuming Phase A remains unset. Live values may change after delivery. Runtime consistency and worker tests are not a contract security audit.

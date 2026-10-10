@@ -1,444 +1,198 @@
 {
-  "timestamp": "2026-10-10T06:51:48.061Z",
-  "previewPath": "/preview/",
+  "date": "2026-10-10T08:46:24.316Z",
+  "urlPath": "/preview/",
   "checks": [
     {
-      "name": "Local production assets load beneath /preview/",
+      "name": "Turkish-first landing has three primary paths and matching top navigation",
+      "pass": true
+    },
+    {
+      "name": "Keyboard skip link is visible and focusable",
       "pass": true,
       "detail": {
-        "scripts": [
-          "/preview/assets/index-DbF_2qlm.js"
-        ],
-        "fonts": [
-          {
-            "family": "Display",
-            "status": "loaded"
-          },
-          {
-            "family": "Space",
-            "status": "loaded"
-          },
-          {
-            "family": "Space",
-            "status": "loaded"
-          }
-        ]
+        "text": "İçeriğe geç",
+        "top": 10,
+        "outline": "solid"
       }
     },
     {
-      "name": "Keyboard skip link has visible focus",
+      "name": "Fresh mainnet readiness confirms bindings while separating Phase B, operator and funding",
       "pass": true,
-      "detail": {
-        "text": "Skip to arcade",
-        "outline": "rgb(124, 231, 255) solid 3px",
-        "top": 10
-      }
+      "detail": "ETHEREUM · CANLI KONTROL\n\nOynamaya hazır mı?\nDurumu yenile\n\nHazineye ücret geliri ulaşmadı; işletme bütçesi yok. Şu anda yalnızca ücretsiz pratik. Sahip ayarları ve fonlama gerekiyor.\n\nSözleşme bağlantıları\n9 / 9 eşleşiyor\nİşletme ayarları\nB aşaması eksik\nOperatör bağlantısı\nBağlantı yapılandırılmadı\nFonlanmış ödüller\n0 PRIO kilitli\nGirişe açık turlar\n0 girişe açık\n\nSon okunan blok 26160927 · 2026-10-10 08:46:23 UTC\n\nA aşaması · 9 bağlantının ayrıntısı\nB aşaması · ayarlar ve bütçeler\nOperatör · imzalı durum ve bağlantı\nÖdüller · gerçek fonlar\nTurlar · sonraki adım"
     },
     {
-      "name": "Viewport 1440 reflows without page overflow",
+      "name": "Each game has distinct free/real actions, exact costs, no-round explanations and readiness links",
+      "pass": true
+    },
+    {
+      "name": "Readiness tile expands its actual detail",
+      "pass": true
+    },
+    {
+      "name": "Responsive production layout at 1440px",
       "pass": true,
       "detail": {
         "width": 1440,
         "scrollWidth": 1440,
-        "bodyWidth": 1440,
-        "h1": "108px",
-        "unlabelledButtons": [],
-        "overflow": []
+        "mainNavVisible": true
       }
     },
     {
-      "name": "Viewport 850 reflows without page overflow",
+      "name": "Responsive production layout at 850px",
       "pass": true,
       "detail": {
         "width": 850,
         "scrollWidth": 850,
-        "bodyWidth": 850,
-        "h1": "82px",
-        "unlabelledButtons": [],
-        "overflow": []
+        "mainNavVisible": true
       }
     },
     {
-      "name": "Viewport 390 reflows without page overflow",
+      "name": "Responsive production layout at 390px",
       "pass": true,
       "detail": {
         "width": 390,
         "scrollWidth": 390,
-        "bodyWidth": 390,
-        "h1": "76px",
-        "unlabelledButtons": [],
-        "overflow": []
+        "mainNavVisible": true
       }
     },
     {
-      "name": "Viewport 320 reflows without page overflow",
+      "name": "Responsive production layout at 320px",
       "pass": true,
       "detail": {
         "width": 320,
         "scrollWidth": 320,
-        "bodyWidth": 320,
-        "h1": "65px",
-        "unlabelledButtons": [],
-        "overflow": []
+        "mainNavVisible": true
       }
     },
     {
-      "name": "Mobile navigation opens and faction navigation closes it",
+      "name": "Practice validates inline, works by keyboard, reveals and resets without a wallet",
       "pass": true
     },
     {
-      "name": "Faction selection changes readable allegiance",
+      "name": "Native modal traps keyboard and restores focus on Escape",
       "pass": true
     },
     {
-      "name": "Faction artwork animates only while onscreen and motion enabled",
-      "pass": true,
-      "detail": {
-        "onscreen": [
-          "./art/dragon-loop.webp",
-          "./art/frog-loop.webp",
-          "./art/wolf.webp",
-          "./art/raven.webp"
-        ],
-        "paused": [
-          "./art/dragon.webp",
-          "./art/frog.webp",
-          "./art/wolf.webp",
-          "./art/raven.webp"
-        ],
-        "loops": [
-          {
-            "faction": 0,
-            "framesDiffer": true
-          },
-          {
-            "faction": 1,
-            "framesDiffer": true
-          },
-          {
-            "faction": 2,
-            "framesDiffer": true
-          },
-          {
-            "faction": 3,
-            "framesDiffer": true
-          }
-        ]
-      }
+      "name": "All three practice games complete and award local informational badges only",
+      "pass": true
     },
     {
-      "name": "Missing wallet gives a recoverable message",
-      "pass": true,
-      "detail": "No wallet found. Open this site in an Ethereum wallet browser, or install an Ethereum browser wallet, then try again."
+      "name": "Real-PRIO action explains no rounds, exact economics and independent recovery",
+      "pass": true
     },
     {
-      "name": "Practice selection, reveal, scoring and restart",
-      "pass": true,
-      "detail": "You chose 2. Training answer: 1. Incorrect choice. This simulation awards no PRIO."
+      "name": "No-round search validates visibly instead of silently ignoring invalid input",
+      "pass": true
     },
     {
-      "name": "Native dialog traps keyboard and returns focus",
-      "pass": true,
-      "detail": {
-        "label": "Play Vault Raid practice",
-        "text": "Play practice"
-      }
+      "name": "Unfunded staking prominently reports reserve, stream and claimable rewards before connection",
+      "pass": true
     },
     {
-      "name": "Paid round readiness and recovery surface opens",
+      "name": "All four faction reactions select visibly; animated media pauses offscreen",
       "pass": true,
-      "detail": "ON-CHAIN ROUNDS\n\nPaid rounds use the deployed Arena’s commit → reveal → claim sequence. A choice is private until you reveal it. Practice games never spend tokens or appear in these results.\n\nPaid entries are disabled by the current readiness checks.\nOwner bindings are incomplete\nPaid oracle requests are disabled\nThe oracle IMD asset / action are not configured correctly\nOperating price floors / IMD pool are not configured\nMatching budget-limited executors are not configured\nFee-funded operating budgets are not available\nOracle payment is not funded within its budget\nNo funded active prizes\nSeparate server operator readiness has not been supplied to this static site\n\nWithdrawals, eligible reveals, claims and cancellation refunds remain available independently of new-entry readiness.\n\nRecorded rounds\n0\nFunded locked prizes\n0 PRIO\nMaximum entry loss\n22 PRIO + gas\n\nConnect your wallet to use this action.\n\nConnect wallet\n\nNo wallet found. Open this site in an Ethereum wallet browser, or install an Ethereum browser wallet, then try again.\n\nThe on-chain arena is quiet.\n\nNo rounds have been created. Paid play needs owner configuration, fee-funded budgets, a funded prize and a ready server operator. Explore free practice from the arcade while setup is pending.\n\nFind any round by ID\nLoad round\nReveal recovery · export and import\nServer operator status & real agent activity\n\nEthereum mainnet · block 26160353 · 10/10/2026, 6:51:35 AM"
+      "detail": [
+        "faction-reaction dragon",
+        "faction-reaction frog",
+        "faction-reaction wolf",
+        "faction-reaction raven"
+      ]
     },
     {
-      "name": "Owner setup separates Phase A bindings and Phase B configuration",
-      "pass": true,
-      "detail": {
-        "text": "OWNER SETUP\n\nSetup uses the existing contracts only. Each step is simulated, shown to the owner’s wallet, and checked after its receipt. Prepared calldata does not mean a transaction has executed.\n\nProject owner\n\n0x13afb9b5780cd9ae79c61503adb69c57845d8eac\n\nRead-only view. Connect the project owner wallet to configure contracts.\n\nConnect your wallet to use this action.\n\nConnect wallet\n\nNo wallet found. Open this site in an Ethereum wallet browser, or install an Ethereum browser wallet, then try again.\n\nPhase A · bindings\nPhase B · operations\nBindings incomplete\nRead current state\n\nA1 → A7 is the required order. Correct settings are skipped. Any conflicting binding stops the plan. A4 can become permanent immediately when pending fees are delivered; A7 is one-shot.\n\nA1\ntreasury.bindHook\nReady for owner review\n\nBinding freezes when the first hook fees arrive.\n\nTarget: 0xb68b1ba47734ba91f3fc37164bb39d408908ff7c\n\nExact calldata & destinations\nSimulate & confirm\nA2\ntreasury.setPrio\nWaiting for previous step\n\nPRIO binding freezes after the first PRIO purchase.\n\nTarget: 0xb68b1ba47734ba91f3fc37164bb39d408908ff7c\n\nExact calldata & destinations\nSimulate & confirm\nA3\ntreasury.setSinks\nWaiting for previous step\n\nOnly the verified vault, Arena and adapter are permitted.\n\nTarget: 0xb68b1ba47734ba91f3fc37164bb39d408908ff7c\n\nExact calldata & destinations\nSimulate & confirm\nA4\nhook.bindTreasury\nWaiting for previous step\n\nEffectively permanent immediately: pending fees may be flushed by anyone after this binding.\n\nTarget: 0x65a783cc6725a02ce349dc4d72577994df1760cc\n\nExact calldata & destinations\nI checked the exact FeeTreasury address, matching runtime, owner and hook binding.\nSimulate & confirm\nA5\nvault.setRewardFunder\nWaiting for previous step\n\nTreasury funds actual reward streams; this does not fund rewards.\n\nTarget: 0x10373c4afc7851b8ab5d94dce7ec1688624cec33\n\nExact calldata & destinations\nSimulate & confirm\nA6\narena.setOracle\nWaiting for previous step\n\nApplies to new rounds; existing rounds retain their oracle.\n\nTarget: 0xe31277d4e9fbf9fc35239dc7d2280e97d5c817c1\n\nExact calldata & destinations\nSimulate & confirm\nA7\nadapter.setArena\nWaiting for previous step\n\nOne-shot permanent binding. Verify the complete Arena address before signing.\n\nTarget: 0x002021b4aeb4125ff25e0353b004f6fdec5f93ed\n\nExact calldata & destinations\nI checked the exact Arena address, matching runtime, owner and PRIO binding.\nSimulate & confirm\nExport prepared plan\n\nEthereum mainnet · block 26160353 · 10/10/2026, 6:51:35 AM\n\nContract verification and source references",
-        "buttons": [
-          {
-            "text": "",
-            "disabled": false
-          },
-          {
-            "text": "Connect wallet",
-            "disabled": false
-          },
-          {
-            "text": "Phase A · bindings",
-            "disabled": false
-          },
-          {
-            "text": "Phase B · operations",
-            "disabled": false
-          },
-          {
-            "text": "Read current state",
-            "disabled": false
-          },
-          {
-            "text": "Simulate & confirm",
-            "disabled": true
-          },
-          {
-            "text": "Simulate & confirm",
-            "disabled": true
-          },
-          {
-            "text": "Simulate & confirm",
-            "disabled": true
-          },
-          {
-            "text": "Simulate & confirm",
-            "disabled": true
-          },
-          {
-            "text": "Simulate & confirm",
-            "disabled": true
-          },
-          {
-            "text": "Simulate & confirm",
-            "disabled": true
-          },
-          {
-            "text": "Simulate & confirm",
-            "disabled": true
-          },
-          {
-            "text": "Export prepared plan",
-            "disabled": false
-          }
-        ]
-      }
+      "name": "Sound is muted by default and starts only after explicit opt-in",
+      "pass": true
     },
     {
-      "name": "Swap and staking controls are labelled",
-      "pass": true,
-      "detail": {
-        "swap": "SWAP ETH / PRIO\n\nTrade in the original ETH/PRIO Uniswap v4 pool. Every quote simulates the deployed hook and pool. Review the minimum you will receive before signing.\n\nBuy PRIO\nSell PRIO\nYou pay\nETH\nWallet balance: — ETH\nSlippage tolerance (%)\n0.01%–5%. Ethereum gas is paid separately, including on a reverted transaction.\nSimulate quote\n\nConnect your wallet to use this action.\n\nConnect wallet\n\nNo wallet found. Open this site in an Ethereum wallet browser, or install an Ethereum browser wallet, then try again.\n\nReview swap in wallet\nPool, risks & allowances\n\nEthereum mainnet · block 26160353 · 10/10/2026, 6:51:35 AM",
-        "inputs": [
-          {
-            "type": "text",
-            "label": "You payETHWallet balance: — ETH",
-            "inputMode": "decimal",
-            "font": "16px"
-          },
-          {
-            "type": "text",
-            "label": "Slippage tolerance (%)0.01%–5%. Ethereum gas is paid separately, including on a reverted transaction.",
-            "inputMode": "decimal",
-            "font": "16px"
-          }
-        ],
-        "simulatedQuote": "Expected output\n9,810.03469976 PRIO\nMinimum received\n9,760.98452626 PRIO\nLP fee\n1.25%\nPlatform protocol fee\n0%\nCombined pool fee\n1.25%\nExtra treasury hook fee\n0.5% of the ETH leg\nEstimated hook fee\n0.000000498 ETH\nWebsite fee\n0\nQuote block\n26160354",
-        "staking": "THE STAKING VAULT\n\nYour PRIO stays in the deployed StakingVault. Rewards stream only when the treasury has supplied funds. You can withdraw whenever the contract permits.\n\nYour staked PRIO\n—\nClaimable PRIO\n—\nStaking reward funding is zero.\n\n0 PRIO in the reward reserve. 0 PRIO staked across all wallets. No fixed APY or guaranteed yield.\n\nStake PRIO\nWithdraw PRIO\nAmount to stake\nAvailable: — PRIO\n\nConnect your wallet to use this action.\n\nConnect wallet\n\nNo wallet found. Open this site in an Ethereum wallet browser, or install an Ethereum browser wallet, then try again.\n\nApprove exact amount\nStake PRIO\nClaim funded rewards\nRevoke vault approval\nFunding and withdrawal details\n\nEthereum mainnet · block 26160354 · 10/10/2026, 6:51:47 AM"
-      }
+      "name": "Motion pause and reduced-motion use bundled still fallbacks",
+      "pass": true
     },
     {
-      "name": "Reduced motion uses still art and stops CSS animation",
-      "pass": true,
-      "detail": {
-        "motion": "off",
-        "sources": [
-          "./art/dragon.webp",
-          "./art/frog.webp",
-          "./art/wolf.webp",
-          "./art/raven.webp"
-        ],
-        "running": 0
-      }
+      "name": "English toggle translates lobby and financial explanations",
+      "pass": true
     },
     {
-      "name": "Axe accessibility scan at mobile",
-      "pass": true,
-      "detail": {
-        "violations": 0,
-        "incomplete": [
-          "color-contrast"
-        ]
-      }
+      "name": "Missing wallet produces inline recovery guidance",
+      "pass": true
     },
     {
-      "name": "Measured solid text and action contrast",
+      "name": "Zero-round season query returns a verified honest empty state",
+      "pass": true
+    },
+    {
+      "name": "200% text resize at desktop remains in the viewport",
+      "pass": true
+    },
+    {
+      "name": "Automated accessibility checks: English desktop and Turkish mobile lobby",
       "pass": true,
       "detail": [
         {
-          "role": "body",
-          "foreground": "#f8f5ff",
-          "background": "#10101d",
-          "ratio": 17.5
+          "language": "en",
+          "violations": []
         },
         {
-          "role": "muted",
-          "foreground": "#b9b3cc",
-          "background": "#10101d",
-          "ratio": 9.32
-        },
-        {
-          "role": "muted surface",
-          "foreground": "#b9b3cc",
-          "background": "#181624",
-          "ratio": 8.81
-        },
-        {
-          "role": "primary button",
-          "foreground": "#10101d",
-          "background": "#f4f46d",
-          "ratio": 16.17
-        },
-        {
-          "role": "focus ring",
-          "foreground": "#7ce7ff",
-          "background": "#10101d",
-          "ratio": 13.23
+          "language": "tr",
+          "violations": []
         }
       ]
     },
     {
-      "name": "Live Ethereum state resolves or exposes an explicit failure",
-      "pass": true,
-      "detail": "ETHEREUM MAINNET\nRefresh\nImmutable treasury fee\n0.5%\n\nOn the ETH leg of each pool swap\n\nTotal treasury income\n0ETH\n\nRead from FeeTreasury\n\nFunded staking reserve\n0PRIO\n\nRewards depend on actual funding\n\nAvailable game prizes\n0PRIO\n\nOnly funded prizes can be allocated\n\nOwner setup pending\nBLOCK 26160354"
+      "name": "RPC failure is distinct from missing configuration and keeps practice working",
+      "pass": true
     },
     {
-      "name": "Mocked EIP1193 owner connects, switches to Ethereum, and rejects safely",
+      "name": "Configured-but-offline project operator endpoint is automatic and does not ask players for a URL",
+      "pass": true
+    },
+    {
+      "name": "Incomplete bindings are configuration errors, distinct from RPC outages",
+      "pass": true
+    },
+    {
+      "name": "Expired signed operator reports remain unavailable with an explicit expiry reason",
+      "pass": true
+    },
+    {
+      "name": "Owner navigation, completed binding skips, wrong network and rejected transaction",
+      "pass": true
+    },
+    {
+      "name": "No application errors or missing production assets",
       "pass": true,
       "detail": {
-        "requests": [
-          "eth_requestAccounts",
-          "eth_chainId",
-          "wallet_switchEthereumChain",
-          "eth_requestAccounts"
-        ],
-        "transactionButtons": [
-          {
-            "text": "Simulate & confirm setting",
-            "disabled": true
-          }
-        ],
-        "rejection": "This wallet request was declined. Any earlier confirmed approvals remain; inspect the transaction history before retrying."
+        "consoleErrors": []
       }
-    },
-    {
-      "name": "RPC failure stays explicit without invented zero balances",
-      "pass": true,
-      "detail": "ETHEREUM MAINNET\nRefresh\nImmutable treasury fee\n0.5%\n\nOn the ETH leg of each pool swap\n\nTotal treasury income\n—ETH\n\nWaiting for chain data\n\nFunded staking reserve\n—PRIO\n\nRewards depend on actual funding\n\nAvailable game prizes\n—PRIO\n\nOnly funded prizes can be allocated\n\nLive reads unavailable\nLIVE READS · CHAIN 1\n\nMissing or invalid parameters. Double check you have provided the correct parameters. Refresh to retry. Displayed values, if any, are stale."
     }
   ],
   "views": [
     {
       "width": 1440,
       "scrollWidth": 1440,
-      "bodyWidth": 1440,
-      "h1": "108px",
-      "unlabelledButtons": [],
-      "overflow": []
+      "mainNavVisible": true
     },
     {
       "width": 850,
       "scrollWidth": 850,
-      "bodyWidth": 850,
-      "h1": "82px",
-      "unlabelledButtons": [],
-      "overflow": []
+      "mainNavVisible": true
     },
     {
       "width": 390,
       "scrollWidth": 390,
-      "bodyWidth": 390,
-      "h1": "76px",
-      "unlabelledButtons": [],
-      "overflow": []
+      "mainNavVisible": true
     },
     {
       "width": 320,
       "scrollWidth": 320,
-      "bodyWidth": 320,
-      "h1": "65px",
-      "unlabelledButtons": [],
-      "overflow": []
+      "mainNavVisible": true
     }
   ],
   "consoleErrors": [],
   "pageErrors": [],
-  "failedRequests": [
-    {
-      "url": "http://127.0.0.1:39983/preview/art/dragon.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/frog.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/wolf.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/raven.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/dragon.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/frog.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/wolf.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/raven.webp",
-      "error": "net::ERR_ABORTED"
-    },
-    {
-      "url": "http://127.0.0.1:39983/preview/art/raven-sm.webp",
-      "error": "net::ERR_ABORTED"
-    }
-  ],
-  "failedResponses": [],
+  "assetFailures": [],
   "limitations": [
-    "Chromium emulation is not a physical device or screen-reader test.",
-    "Wallet signatures and Ethereum transactions are not broadcast by this review.",
-    "Native browser zoom and 10%-speed DevTools animation review are not performed."
+    "Chromium emulation is not a physical-device or screen-reader test.",
+    "Native 200% browser zoom and DevTools 10%-speed animation replay are not performed; 200% text resize and 320px reflow are checked.",
+    "Wallet rejection is simulated; the funded contract path is tested separately on local Anvil. No public transaction is sent."
   ],
-  "browserVersion": "136.0.7103.25",
-  "axe": [],
-  "contrast": [
-    {
-      "role": "body",
-      "foreground": "#f8f5ff",
-      "background": "#10101d",
-      "ratio": 17.5
-    },
-    {
-      "role": "muted",
-      "foreground": "#b9b3cc",
-      "background": "#10101d",
-      "ratio": 9.32
-    },
-    {
-      "role": "muted surface",
-      "foreground": "#b9b3cc",
-      "background": "#181624",
-      "ratio": 8.81
-    },
-    {
-      "role": "primary button",
-      "foreground": "#10101d",
-      "background": "#f4f46d",
-      "ratio": 16.17
-    },
-    {
-      "role": "focus ring",
-      "foreground": "#7ce7ff",
-      "background": "#10101d",
-      "ratio": 13.23
-    }
-  ],
-  "summary": {
-    "passed": 21,
-    "failed": 0
-  }
+  "browser": "154.0.8037.0"
 }

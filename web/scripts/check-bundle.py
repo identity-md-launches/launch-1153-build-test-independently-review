@@ -22,11 +22,23 @@ def git(*args):
 
 def submission_files():
     names = set(git("ls-files", "--cached", "--others", "--exclude-standard", "-z").decode().split("\0"))
-    return sorted(ROOT / name for name in names if name)
+    return sorted(ROOT / name for name in names if name and (ROOT / name).is_file())
 
 
 changed = git("diff", "--name-only", "HEAD").decode().splitlines()
-assert changed == ["README.md"], f"Unexpected change to original files: {changed}"
+protected_names = {"foundry.toml", "foundry.lock", "remappings.txt", ".gitmodules", "package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock", "bun.lockb"}
+for name in changed:
+    p = Path(name)
+    assert p.name not in protected_names, f"Protected build/dependency file changed: {name}"
+    assert not any(part in {".git", ".github", "node_modules"} for part in p.parts), name
+    assert p.parts[0] != "lib", f"Protected dependencies changed: {name}"
+    assert not any(part == ".env" or part.startswith(".env.") for part in p.parts), name
+    assert p.name not in {".gitignore", ".ignore", ".npmignore"}, f"No ignore-file path budget was requested: {name}"
+# Whitespace-only ABI compaction must preserve every ABI item and canonical hash.
+for directory in ("docs/abi", "web/src/chain/abi"):
+    for path in (ROOT / directory).glob("*.json"):
+        original = json.loads(git("show", "HEAD:" + str(path.relative_to(ROOT))))
+        assert json.loads(path.read_text()) == original, f"ABI changed: {path}"
 assert not any(line.startswith(b"160000 ") for line in git("ls-files", "--stage").splitlines()), "Git submodule found"
 
 for path in submission_files():
@@ -104,12 +116,13 @@ result = {
     "fontSourceExportHashesMatched": 3,
     "relativeExportReferencesVerified": parser.paths,
     "packageLockMatchesManifest": True,
-    "onlyOriginalFileModified": "README.md",
+    "changedOriginalFiles": len(changed),
+    "canonicalAbiContentUnchanged": True,
     "protectedExistingPathsUnchanged": True,
     "ignoreFilesUnchanged": True,
     "gitSubmodules": 0,
     "dependencyCacheArchiveFilesInSubmission": 0,
-    "publicPublication": "incomplete: official publisher returned HTTP 503 member_sites_closed"
+    "publicPublication": "existing prio URL reachable, update incomplete: official publisher returned HTTP 503 member_sites_closed"
 }
 for _ in range(6):
     REPORT.write_text(json.dumps(result, indent=2) + "\n")

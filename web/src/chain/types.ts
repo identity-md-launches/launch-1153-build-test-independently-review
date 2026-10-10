@@ -109,6 +109,8 @@ export interface Snapshot {
     arenaAllowance: bigint;
   };
   phaseAComplete: boolean;
+  configurationReady?: boolean;
+  operationsReady?: boolean;
   corePaidReady: boolean;
   paidReady: boolean;
   readinessReasons: string[];

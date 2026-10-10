@@ -1,17 +1,27 @@
 {
   "attemptedAtDate": "2026-10-10",
-  "method": "IdentityMD official worker site publish",
-  "label": "prism-riot",
-  "bundleBytes": 2115058,
+  "command": "imd site publish ./dist --name prio",
+  "label": "prio",
+  "existingProjectName": "prio.site.identitymd.eth",
+  "bundleBytes": 2152735,
   "exitCode": 1,
   "httpStatus": 503,
   "error": "member_sites_closed",
   "detail": "this plane names no member sites",
   "siteId": null,
-  "cid": null,
-  "publicUrl": null,
-  "entryModule": "assets/index-DbF_2qlm.js",
-  "sourceDestination": "https://github.com/identity-md-launches/launch-1158-complete-missing-application-deployment",
-  "sourceDelivery": "platform handoff pending; not pushed by this worker",
-  "reachabilityChecked": false
+  "newCid": null,
+  "publicUrl": "https://prio.sites.imd.fun/",
+  "newExportPublished": false,
+  "entryModule": "assets/index-B8OTgtTI.js",
+  "sourceDestination": "https://github.com/identity-md-launches/launch-1153-build-test-independently-review",
+  "sourceDelivery": "files prepared for platform Git handoff; this worker did not push or modify .git",
+  "reachability": {
+    "checkedAt": "2026-10-10T08:46:51.289656+00:00",
+    "url": "https://prio.sites.imd.fun/",
+    "httpStatus": 200,
+    "indexSha256": "a5c976818498731204e9ae3b3bd1d5f6e127b902bf7eb6567377aedbe807878f",
+    "servedEntryModule": "./assets/index-DbF_2qlm.js",
+    "expectedEntryModule": "./assets/index-B8OTgtTI.js",
+    "newExportPublished": false
+  }
 }

@@ -1,3 +1,5 @@
+> Historical contract-stage reference. No deployment is required by the current website task. For fresh deployed state and the completed Phase A bindings, use [CHAIN-VERIFICATION.md](CHAIN-VERIFICATION.md); for current checks use [VALIDATION.md](VALIDATION.md).
+
 > Historical reference from accepted commit `0345ffa67225afed469453250362e74b7f00ff42`. Its prelaunch observations describe 2026-10-09, not current readiness. See [CHAIN-VERIFICATION.md](CHAIN-VERIFICATION.md) and the live website reads for current deployed addresses, receipts and configuration. No contracts were deployed by the website task.
 
 # Deployment and configuration checklist: PRISM RIOT application contracts

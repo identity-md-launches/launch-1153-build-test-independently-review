@@ -1,3 +1,5 @@
+> Historical contract-stage reference. No deployment is required by the current website task. For fresh deployed state and the completed Phase A bindings, use [CHAIN-VERIFICATION.md](CHAIN-VERIFICATION.md); for current checks use [VALIDATION.md](VALIDATION.md).
+
 # Review record: prior findings, fixes and the self-review
 
 ## Prior attempt

@@ -1,0 +1,41 @@
+{
+  "result": "passed",
+  "date": "2026-10-10T08:19:11.536Z",
+  "forkBlock": "26160788",
+  "networkWrites": "loopback Anvil only",
+  "deployedContracts": true,
+  "redeployments": 0,
+  "checks": [
+    {
+      "name": "Fresh deployed runtimes and all 9 bindings verify; completed one-shot A7 is skipped",
+      "detail": {
+        "forkBlock": "26160788"
+      }
+    },
+    {
+      "name": "Real treasury allocation and mainnet-pool purchases fund Arena, IMD adapter and staking on the fork",
+      "detail": {
+        "prizes": "489954791451254351656438",
+        "imd": "3241848256694496823",
+        "rewardRate": "189025768306811092460045138888888888"
+      }
+    },
+    {
+      "name": "Owner pinQuestion → createRound uses matching deadlines and locks actual funded prizes in all 3 modes"
+    },
+    {
+      "name": "9 funded entries use production readiness, exact 102 PRIO approvals, saved/exported secrets and receipt-checked commits"
+    },
+    {
+      "name": "Production reveal, signed attestation, settle and claims pay exactly 200/90/80 PRIO; unmet Boss threshold pays 100/90/80; double claims revert"
+    },
+    {
+      "name": "Unresolved round cancels only after the grace period; all 3 refunds return 102 PRIO and escrow/locked-prize accounting clears"
+    }
+  ],
+  "limitations": [
+    "Fork-only fixture fee income, balances, executor and oracle signer settings; not mainnet configuration.",
+    "Oracle attestation signed by an ephemeral fork-only signer; the hosted IMD service was not called.",
+    "Readiness guards and production transaction functions used; no production bypass flag exists."
+  ]
+}

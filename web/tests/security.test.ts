@@ -383,3 +383,20 @@ test('operator status fetch rejects credentialed and insecure endpoints without 
   await assert.rejects(() => fetchOperatorStatus('https://operator.example/status', f.snapshot), /too large/)
   assert.equal(request.mock.callCount(), 1)
 })
+
+test('operator service readiness permits first-round management without bypassing paid-entry prize checks', async () => {
+  const f = await operatorFixture(); f.snapshot.operationsReady = true; f.snapshot.corePaidReady = false;
+  f.snapshot.readinessReasons = ['No funded active prizes', 'Separate server operator readiness has not been supplied to this static site'];
+  const proof = await verifyOperatorStatus(await f.sign(f.payload), f.snapshot, f.now);
+  assert.equal(proof.serviceReady, true); assert.equal(proof.ready, false);
+  f.snapshot.operationsReady = false;
+  assert.equal((await verifyOperatorStatus(await f.sign(f.payload), f.snapshot, f.now)).serviceReady, false);
+});
+
+test('reviewed IMD proposals must have bounded real content hashes in the signed payload', async () => {
+  const f = await operatorFixture();
+  const payload = { ...f.payload, reviewedChallenges: [{ id: 'test-proposal', title: 'Test-only proposal', questionHash: TX_HASH, bodyHash: TX_HASH, rulesHash: TX_HASH, reviewedAt: f.now - 20 }] };
+  assert.ok((await verifyOperatorStatus(await f.sign(payload), f.snapshot, f.now)).signed.payload.reviewedChallenges?.length);
+  const malformed = { ...payload, reviewedChallenges: [{ ...payload.reviewedChallenges[0], rulesHash: '0x' as Hex }] };
+  await assert.rejects(async () => verifyOperatorStatus(await f.sign(malformed), f.snapshot, f.now), /reviewed challenge/);
+});

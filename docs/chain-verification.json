@@ -1,9 +1,9 @@
 {
-  "observedAt": "2026-10-10T06:50:56.172Z",
+  "observedAt": "2026-10-10T08:25:36.184Z",
   "chainId": 1,
-  "blockNumber": "26160349",
-  "blockHash": "0x275acca203e822e620e77514064aa028c8dc1f1b8ca4828003fc0e5538afbf3f",
-  "blockTimestamp": "1791615047",
+  "blockNumber": "26160822",
+  "blockHash": "0x246636c13a51ddcfc728d32a0455ac1759bf5624ac1b1633e19720bc8f8e2772",
+  "blockTimestamp": "1791620723",
   "rpc": "https://ethereum-rpc.publicnode.com",
   "fallbackRpc": "https://eth.drpc.org",
   "sourceCommit": "0345ffa67225afed469453250362e74b7f00ff42",
@@ -58,7 +58,7 @@
         },
         "initialized": true,
         "FEE_BPS": "50",
-        "treasury": "0x0000000000000000000000000000000000000000",
+        "treasury": "0xB68b1BA47734ba91f3Fc37164bB39D408908Ff7c",
         "pendingEth": "393544776119406",
         "pendingClaims": "0",
         "totalFeeCharged": "393544776119406",
@@ -81,12 +81,12 @@
       "values": {
         "owner": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
         "poolManager": "0x000000000004444c5dc75cB358380D2e3dE08A90",
-        "hook": "0x0000000000000000000000000000000000000000",
-        "prio": "0x0000000000000000000000000000000000000000",
+        "hook": "0x65a783CC6725a02Ce349Dc4d72577994Df1760cc",
+        "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
         "imd": "0x0000000000000000000000000000000000000000",
-        "stakingVault": "0x0000000000000000000000000000000000000000",
-        "arena": "0x0000000000000000000000000000000000000000",
-        "oracleAdapter": "0x0000000000000000000000000000000000000000",
+        "stakingVault": "0x10373C4afC7851B8aB5D94DCE7eC1688624CeC33",
+        "arena": "0xe31277D4E9fBf9Fc35239Dc7D2280e97d5C817C1",
+        "oracleAdapter": "0x002021b4AEb4125ff25E0353b004F6fdeC5f93ed",
         "executor": "0x0000000000000000000000000000000000000000",
         "totalIncome": "0",
         "unallocated": "0",
@@ -132,8 +132,8 @@
       "values": {
         "owner": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
         "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
-        "rewardFunder": "0x0000000000000000000000000000000000000000",
-        "totalStaked": "0",
+        "rewardFunder": "0xB68b1BA47734ba91f3Fc37164bB39D408908Ff7c",
+        "totalStaked": "10000000000000000000000000",
         "rewardReserve": "0",
         "rewardsOwed": "0",
         "rewardRate": "0",
@@ -157,7 +157,7 @@
       "values": {
         "owner": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
         "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
-        "oracle": "0x0000000000000000000000000000000000000000",
+        "oracle": "0x002021b4AEb4125ff25E0353b004F6fdeC5f93ed",
         "roundCount": "0",
         "unallocatedPrizePool": "0",
         "lockedPrizes": "0",
@@ -181,7 +181,7 @@
       },
       "values": {
         "owner": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
-        "arena": "0x0000000000000000000000000000000000000000",
+        "arena": "0xe31277D4E9fBf9Fc35239Dc7D2280e97d5C817C1",
         "intake": "0x0000000000000000000000000000000000000000",
         "action": "0x0000000000000000000000000000000000000000000000000000000000000000",
         "asset": "0x0000000000000000000000000000000000000000",
@@ -445,7 +445,7 @@
     "buy": {
       "input": "100000000000000",
       "output": "9810034699761563432879",
-      "gasEstimate": "377042",
+      "gasEstimate": "458418",
       "ok": true
     },
     "sell": {

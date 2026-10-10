@@ -5,6 +5,20 @@ drives the two IMD paid flows the project uses and relays results to the contrac
 authority: it can only spend what the owner budgeted on chain (`OracleAdapter.setBudget`) and what
 `operator.json` allows, and nothing it produces can change an active round or move player funds.
 
+## Website handoff for this update
+
+The website remains a static export, not a running operator. Current `web/public/project.json` is `{"version":1,"operatorStatusUrl":null}`. No server endpoint has been supplied or verified. Do not use a made-up URL, browser key or paid IMD credential to make readiness look active.
+
+When the separately hosted service is available, the project maintainer sets its **single public HTTPS JSON status endpoint** in that file and rebuilds/publishes `dist/` under the existing `prio` name. Ordinary players are never asked for an endpoint. Serve CORS for the public site/gateway origins; the browser sends no credentials or referrer. Keep responses at most 64 KiB, with bounded activity. A static JSON file pinned to IPFS cannot supply ongoing fresh heartbeats.
+
+Implement the exact `SignedOperatorStatus` / `operatorStatusMessage` schema in `web/src/chain/operator.ts`: recursively sorted object keys, unchanged array order, compact JSON, prefixed by `PRISM RIOT operator status v1\n`, signed as an EIP-191 message by the **current executor on both Treasury and Adapter**. Reports bind chain 1, the existing Arena and a block no more than 32 blocks behind the fresh snapshot. Issue at most five minutes ago, at most 30 seconds into the future; expire within five minutes. Include the real paid switch, remaining request/gas/IMD budgets and only actual activity. The browser rejects wrong signer/chain/Arena, stale/expired reports, malformed content and insufficient budgets; it automatically clears expired proof. Availability/status is an executor assertion; chain receipts remain the evidence of payments.
+
+For reviewed IMD challenges, the optional signed `reviewedChallenges` array contains `id`, `title`, `questionHash`, `bodyHash`, `rulesHash`, `reviewedAt` (Unix seconds). At most 20 proposals; hashes are bytes32. The real operator must review the actual content and exact Intake JSON body, obtain the protocol's canonical question hash from its check/quote process, and agree the future-round parameters with the owner. `bodyHash` is Keccak-256 of exact UTF-8 body bytes; `rulesHash` is the website's reproducible `roundRules()` document hash. They are not interchangeable. The owner explicitly reviews and approves the published question, choices/scoring, deadlines and real prize budget in Round management before pin/create. A matching signed proposal is mandatory when source is IMD. This does not grant an operator the power to change existing rounds, issue tokens or create new reward rights.
+
+Fresh chain checks still show Phase B, operating funding and rounds incomplete despite all nine correct Phase A bindings. Finish owner-reviewed configuration, callback/relay verification, matched executors and funded on-chain budgets before reporting paid operations ready. Preserve fee-funded spending caps and the existing server ledger. If fee income is insufficient, keep free-practice-only operation. The browser's first-round service guard requires operating readiness and available prizes but does not require a pre-existing locked round; paid player entry additionally checks the actual open funded round.
+
+The server code below predates this website update; deploying/operating it and exposing the signed status endpoint remain a separate handoff. No server is started by loading the site. Do not copy the fork test's ephemeral signer or fixture settings to mainnet.
+
 ## Setup
 
 1. Copy `operator/operator.example.json` to `operator.json` and fill `contracts.*` with the launched
