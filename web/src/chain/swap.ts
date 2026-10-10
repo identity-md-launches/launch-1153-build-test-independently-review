@@ -9,7 +9,9 @@ import {
   type Abi,
 } from "viem";
 import { ADDRESSES, publicClient } from "./config";
-import { readSnapshot } from "./read";
+import { readSwap } from "./financial-read";
+import { poolIdOf } from "./read";
+import { estimateGasBudget } from "./gas";
 import { approveExact, executeCall } from "./write";
 import type { PoolKey, StatusListener } from "./types";
 
@@ -44,6 +46,7 @@ export interface SwapQuote {
   combinedPoolFeePpm: number;
   hookFeeEth: bigint;
   hookFeeIsEstimate: boolean;
+  priceImpactBps?: bigint;
 }
 export function minimumOutput(output: bigint, slippageBps: number) {
   if (!Number.isInteger(slippageBps) || slippageBps < 1 || slippageBps > 500)
@@ -63,7 +66,7 @@ export async function quoteSwap(
   if (direction !== "buy" && direction !== "sell")
     throw new Error("Unsupported swap direction");
   minimumOutput(10000n, slippageBps);
-  const s = await readSnapshot();
+  const s = await readSwap();
   if (!s.verified) throw new Error(s.verificationErrors.join("; "));
   const zeroForOne = direction === "buy";
   const result = await publicClient.simulateContract({
@@ -91,6 +94,12 @@ export async function quoteSwap(
     protocolFeePpm +
     lpFeePpm -
     Math.floor((protocolFeePpm * lpFeePpm) / 1_000_000);
+  const spot = zeroForOne
+    ? amountIn * s.pool.sqrtPriceX96 ** 2n / (1n << 192n)
+    : amountIn * (1n << 192n) / s.pool.sqrtPriceX96 ** 2n;
+  const poolNet = spot * BigInt(1_000_000 - combinedPoolFeePpm) / 1_000_000n;
+  const feeAdjustedSpot = zeroForOne ? poolNet * 10000n / 10050n : poolNet * 9950n / 10000n;
+  const priceImpactBps = feeAdjustedSpot > 0n ? (feeAdjustedSpot > amountOut ? (feeAdjustedSpot - amountOut) * 10000n / feeAdjustedSpot : 0n) : undefined;
   const observedAt = Date.now();
   return {
     direction,
@@ -110,6 +119,7 @@ export async function quoteSwap(
       ? (amountIn * 50n + 10049n) / 10050n
       : (amountOut * 50n + 9949n) / 9950n,
     hookFeeIsEstimate: true,
+    priceImpactBps,
   };
 }
 
@@ -167,6 +177,8 @@ export async function prepareSwapApproval(
 ) {
   if (amountIn <= 0n || amountIn >= 1n << 128n)
     throw new Error("Invalid approval amount");
+  const state = await readSwap(account);
+  if (!state.verified) throw new Error(state.verificationErrors.join("; "));
   await approveExact(wallet, account, ADDRESSES.permit2, amountIn, onStatus);
   const [amount, expiration] = await publicClient.readContract({
     address: ADDRESSES.permit2,
@@ -200,7 +212,9 @@ export async function executeSwap(
     throw new Error(
       "Quote expired. Simulate a fresh quote and review the new minimum output.",
     );
-  const s = await readSnapshot(account);
+  if (!["buy", "sell"].includes(quote.direction) || quote.amountIn <= 0n || quote.amountIn >= 1n << 128n || quote.minimumOut <= 0n || quote.minimumOut > quote.amountOut) throw new Error("Invalid swap bounds. Prepare a new quote.");
+  const s = await readSwap(account);
+  if (poolIdOf(quote.poolKey) !== s.hook.poolId) throw new Error("The quote does not use the verified ETH/PRIO pool. Prepare a new quote.");
   if (!s.verified) throw new Error(s.verificationErrors.join("; "));
   if (quote.direction === "sell") {
     const [amount, expiration] = await publicClient.readContract({
@@ -209,7 +223,7 @@ export async function executeSwap(
       functionName: "allowance",
       args: [account, ADDRESSES.token, ADDRESSES.router],
     });
-    if (amount < quote.amountIn || expiration <= s.timestamp + 60)
+    if (s.account?.tokenAllowance !== quote.amountIn || amount !== quote.amountIn || expiration <= s.timestamp + 60 || expiration > s.timestamp + 1200)
       throw new Error(
         "Approve the exact sell amount first, then obtain a fresh quote.",
       );
@@ -217,7 +231,7 @@ export async function executeSwap(
   if (Date.now() > quote.expiresAt)
     throw new Error("Quote expired during verification. Refresh the quote.");
   // The owner-reviewed minimum remains unchanged: a worse fresh state must fail simulation.
-  const encoded = encodeSwap(quote, account, BigInt(s.timestamp + 120));
+  const encoded = encodeSwap(quote, account, BigInt(Math.min(s.timestamp + 120, Math.floor(quote.expiresAt / 1000))));
   return executeCall(
     wallet,
     account,
@@ -230,5 +244,13 @@ export async function executeSwap(
     },
     "ETH / PRIO swap",
     onStatus,
+    () => { if (Date.now() >= quote.expiresAt) throw new Error("Quote expired before signing. Refresh the quote and review the minimum output."); },
   );
+}
+export async function estimateSwapGas(account: Address, quote: SwapQuote) {
+  const encoded = encodeSwap(quote, account, BigInt(Math.min(Math.floor(Date.now() / 1000) + 120, Math.floor(quote.expiresAt / 1000))));
+  return estimateGasBudget(account, { address: ADDRESSES.router, abi: routerAbi, functionName: "execute", args: [encoded.commands, encoded.inputs, encoded.deadline], value: encoded.value });
+}
+export function sellApproved(s: Awaited<ReturnType<typeof readSwap>> | undefined, amount: bigint | undefined, now = Math.floor(Date.now() / 1000)) {
+  return !!amount && s?.account?.tokenAllowance === amount && s.account.routerAllowance === amount && s.account.routerExpiration > now + 60 && s.account.routerExpiration <= now + 1200;
 }

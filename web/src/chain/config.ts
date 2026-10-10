@@ -42,11 +42,11 @@ export const publicClient = createPublicClient({
   chain: mainnet,
   transport: fallback([
     http("https://ethereum-rpc.publicnode.com", {
-      timeout: 15000,
-      retryCount: 1,
+      timeout: 8000,
+      retryCount: 0,
     }),
-    http("https://eth.drpc.org", { timeout: 15000, retryCount: 1 }),
-  ]),
+    http("https://eth.drpc.org", { timeout: 8000, retryCount: 0 }),
+  ], { retryCount: 0 }),
   batch: { multicall: true },
 });
 export const sameAddress = (a: string, b: string) =>

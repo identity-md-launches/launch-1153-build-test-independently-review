@@ -1,198 +1,474 @@
 {
-  "date": "2026-10-10T08:46:24.316Z",
-  "urlPath": "/preview/",
+  "date": "2026-10-10T11:22:19.277Z",
+  "forkBlock": "26161704",
+  "exportPath": "/preview/",
   "checks": [
     {
-      "name": "Turkish-first landing has three primary paths and matching top navigation",
-      "pass": true
+      "name": "English-only production export ignores and removes saved Turkish preference",
+      "passed": true,
+      "ms": 257
     },
     {
-      "name": "Keyboard skip link is visible and focusable",
-      "pass": true,
-      "detail": {
-        "text": "İçeriğe geç",
-        "top": 10,
-        "outline": "solid"
-      }
-    },
-    {
-      "name": "Fresh mainnet readiness confirms bindings while separating Phase B, operator and funding",
-      "pass": true,
-      "detail": "ETHEREUM · CANLI KONTROL\n\nOynamaya hazır mı?\nDurumu yenile\n\nHazineye ücret geliri ulaşmadı; işletme bütçesi yok. Şu anda yalnızca ücretsiz pratik. Sahip ayarları ve fonlama gerekiyor.\n\nSözleşme bağlantıları\n9 / 9 eşleşiyor\nİşletme ayarları\nB aşaması eksik\nOperatör bağlantısı\nBağlantı yapılandırılmadı\nFonlanmış ödüller\n0 PRIO kilitli\nGirişe açık turlar\n0 girişe açık\n\nSon okunan blok 26160927 · 2026-10-10 08:46:23 UTC\n\nA aşaması · 9 bağlantının ayrıntısı\nB aşaması · ayarlar ve bütçeler\nOperatör · imzalı durum ve bağlantı\nÖdüller · gerçek fonlar\nTurlar · sonraki adım"
-    },
-    {
-      "name": "Each game has distinct free/real actions, exact costs, no-round explanations and readiness links",
-      "pass": true
-    },
-    {
-      "name": "Readiness tile expands its actual detail",
-      "pass": true
-    },
-    {
-      "name": "Responsive production layout at 1440px",
-      "pass": true,
-      "detail": {
-        "width": 1440,
-        "scrollWidth": 1440,
-        "mainNavVisible": true
-      }
-    },
-    {
-      "name": "Responsive production layout at 850px",
-      "pass": true,
-      "detail": {
-        "width": 850,
-        "scrollWidth": 850,
-        "mainNavVisible": true
-      }
-    },
-    {
-      "name": "Responsive production layout at 390px",
-      "pass": true,
-      "detail": {
-        "width": 390,
-        "scrollWidth": 390,
-        "mainNavVisible": true
-      }
-    },
-    {
-      "name": "Responsive production layout at 320px",
-      "pass": true,
-      "detail": {
-        "width": 320,
-        "scrollWidth": 320,
-        "mainNavVisible": true
-      }
-    },
-    {
-      "name": "Practice validates inline, works by keyboard, reveals and resets without a wallet",
-      "pass": true
-    },
-    {
-      "name": "Native modal traps keyboard and restores focus on Escape",
-      "pass": true
-    },
-    {
-      "name": "All three practice games complete and award local informational badges only",
-      "pass": true
-    },
-    {
-      "name": "Real-PRIO action explains no rounds, exact economics and independent recovery",
-      "pass": true
-    },
-    {
-      "name": "No-round search validates visibly instead of silently ignoring invalid input",
-      "pass": true
-    },
-    {
-      "name": "Unfunded staking prominently reports reserve, stream and claimable rewards before connection",
-      "pass": true
-    },
-    {
-      "name": "All four faction reactions select visibly; animated media pauses offscreen",
-      "pass": true,
-      "detail": [
-        "faction-reaction dragon",
-        "faction-reaction frog",
-        "faction-reaction wolf",
-        "faction-reaction raven"
-      ]
-    },
-    {
-      "name": "Sound is muted by default and starts only after explicit opt-in",
-      "pass": true
-    },
-    {
-      "name": "Motion pause and reduced-motion use bundled still fallbacks",
-      "pass": true
-    },
-    {
-      "name": "English toggle translates lobby and financial explanations",
-      "pass": true
-    },
-    {
-      "name": "Missing wallet produces inline recovery guidance",
-      "pass": true
-    },
-    {
-      "name": "Zero-round season query returns a verified honest empty state",
-      "pass": true
-    },
-    {
-      "name": "200% text resize at desktop remains in the viewport",
-      "pass": true
-    },
-    {
-      "name": "Automated accessibility checks: English desktop and Turkish mobile lobby",
-      "pass": true,
+      "name": "Buying is immediately visible; desktop and mobile export reflow",
+      "passed": true,
+      "ms": 232,
       "detail": [
         {
-          "language": "en",
-          "violations": []
+          "width": 1440,
+          "scrollWidth": 1440,
+          "hero": 1057.625,
+          "buy": 116,
+          "buyNav": 60.578125
         },
         {
-          "language": "tr",
-          "violations": []
+          "width": 850,
+          "scrollWidth": 850,
+          "hero": 742,
+          "buy": 742,
+          "buyNav": 60.578125
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "hero": 632.25,
+          "buy": 632.25,
+          "buyNav": 56.25
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "hero": 717.25,
+          "buy": 717.25,
+          "buyNav": 51.921875
         }
       ]
     },
     {
-      "name": "RPC failure is distinct from missing configuration and keeps practice working",
-      "pass": true
-    },
-    {
-      "name": "Configured-but-offline project operator endpoint is automatic and does not ask players for a URL",
-      "pass": true
-    },
-    {
-      "name": "Incomplete bindings are configuration errors, distinct from RPC outages",
-      "pass": true
-    },
-    {
-      "name": "Expired signed operator reports remain unavailable with an explicit expiry reason",
-      "pass": true
-    },
-    {
-      "name": "Owner navigation, completed binding skips, wrong network and rejected transaction",
-      "pass": true
-    },
-    {
-      "name": "No application errors or missing production assets",
-      "pass": true,
+      "name": "Connection uses account access only and supports multiple injected providers",
+      "passed": true,
+      "ms": 1347,
       "detail": {
-        "consoleErrors": []
+        "providerCount": 1
+      }
+    },
+    {
+      "name": "Selecting a second injected provider disconnects first and uses only selected wallet",
+      "passed": true,
+      "ms": 541
+    },
+    {
+      "name": "Invalid amount, zero token balance and explicit quote preparation blockers",
+      "passed": true,
+      "ms": 364
+    },
+    {
+      "name": "ETH percentage shortcuts reserve freshly estimated gas, round down, and never sign",
+      "passed": true,
+      "ms": 1884
+    },
+    {
+      "name": "Debounced quote races discard old amounts and keep protected minimum output",
+      "passed": true,
+      "ms": 1998
+    },
+    {
+      "name": "Wallet rejection preserves the quote and never reports confirmation",
+      "passed": true,
+      "ms": 165
+    },
+    {
+      "name": "Buy routes through deployed router simulation and a signed local transaction",
+      "passed": true,
+      "ms": 422,
+      "detail": {
+        "receivedPrioBaseUnits": "97392487522396571067379",
+        "transaction": "0x7539864b6db71a9378b1f9a169d06a208730f7cfc74ac99fe389f6febc66b9bb"
+      }
+    },
+    {
+      "name": "Sell percentages use wallet PRIO; exact token and Permit2 allowances lead to sell",
+      "passed": true,
+      "ms": 5267
+    },
+    {
+      "name": "Zero-reward staking allows exact approval and deposit with actual wallet blockers",
+      "passed": true,
+      "ms": 2920
+    },
+    {
+      "name": "Withdraw percentage rounds down from own principal and confirms withdrawal",
+      "passed": true,
+      "ms": 1520
+    },
+    {
+      "name": "Disconnect during asynchronous simulation invalidates the captured signing client",
+      "passed": true,
+      "ms": 4138
+    },
+    {
+      "name": "Disconnect followed by accountsChanged cannot restore an account without a client",
+      "passed": true,
+      "ms": 672
+    },
+    {
+      "name": "Restoration recreates wallet client without prompting or signing",
+      "passed": true,
+      "ms": 1460
+    },
+    {
+      "name": "Locked wallet clears connected state and provides unlock/reconnect recovery",
+      "passed": true,
+      "ms": 503
+    },
+    {
+      "name": "Wrong chain clears input and failed network switch never reports Ethereum success",
+      "passed": true,
+      "ms": 790
+    },
+    {
+      "name": "Account changes invalidate inputs, balances, quotes and approval assumptions",
+      "passed": true,
+      "ms": 312
+    },
+    {
+      "name": "Fallback RPC, full outage and explicit retry recovery",
+      "passed": true,
+      "ms": 28537
+    },
+    {
+      "name": "Stale Ethereum block reads disable financial actions with an explicit refresh path",
+      "passed": true,
+      "ms": 45033
+    },
+    {
+      "name": "Unrelated game RPC failure cannot block swaps or staking",
+      "passed": true,
+      "ms": 2028
+    },
+    {
+      "name": "Expired quote refreshes and delayed response cannot become signable under new input",
+      "passed": true,
+      "ms": 1541,
+      "detail": {
+        "clockAdvancedMs": 61000
+      }
+    },
+    {
+      "name": "Insufficient gas is explained before approvals or wallet signatures",
+      "passed": true,
+      "ms": 175
+    },
+    {
+      "name": "Verified owner controls appear only collapsed near footer and preserve Phase A skips",
+      "passed": true,
+      "ms": 933
+    },
+    {
+      "name": "Practice keyboard flow, reveal recovery, faction reactions, opt-in sound and reduced motion",
+      "passed": true,
+      "ms": 2016
+    },
+    {
+      "name": "Mobile staking shortcuts and financial focus remain readable",
+      "passed": true,
+      "ms": 281
+    },
+    {
+      "name": "Automated accessibility and local font/asset loading on desktop and 320px",
+      "passed": true,
+      "ms": 1974,
+      "detail": {
+        "fonts": [
+          {
+            "family": "Display",
+            "status": "loaded"
+          },
+          {
+            "family": "Space",
+            "status": "loaded"
+          },
+          {
+            "family": "Space",
+            "status": "loaded"
+          }
+        ],
+        "results": [
+          {
+            "width": 1440,
+            "violations": []
+          },
+          {
+            "width": 320,
+            "violations": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rendered solid financial color contrast and 200% text reflow",
+      "passed": true,
+      "ms": 65,
+      "detail": [
+        {
+          "selector": ".swap-panel",
+          "color": "rgb(248, 245, 255)",
+          "background": "rgb(24, 22, 36)",
+          "opacity": "1",
+          "effectiveBackground": "rgb(24, 22, 36)",
+          "ratio": 16.535187208011855
+        },
+        {
+          "selector": ".swap-panel .button.primary",
+          "color": "rgb(16, 16, 29)",
+          "background": "rgb(244, 244, 109)",
+          "opacity": "0.48",
+          "effectiveBackground": "rgb(244, 244, 109)",
+          "ratio": 16.166515113787245
+        },
+        {
+          "selector": ".swap-output",
+          "color": "rgb(248, 245, 255)",
+          "background": "rgb(33, 30, 50)",
+          "opacity": "1",
+          "effectiveBackground": "rgb(33, 30, 50)",
+          "ratio": 15.03837318051029
+        },
+        {
+          "selector": ".amount-shortcuts button",
+          "color": "rgb(248, 245, 255)",
+          "background": "rgb(33, 30, 50)",
+          "opacity": "1",
+          "effectiveBackground": "rgb(33, 30, 50)",
+          "ratio": 15.03837318051029
+        },
+        {
+          "selector": ".gas-note",
+          "color": "rgb(185, 179, 204)",
+          "background": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "effectiveBackground": "rgb(24, 22, 36)",
+          "ratio": 8.805893288528248
+        },
+        {
+          "selector": ".action-help",
+          "color": "rgb(185, 179, 204)",
+          "background": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "effectiveBackground": "rgb(24, 22, 36)",
+          "ratio": 8.805893288528248
+        }
+      ]
+    },
+    {
+      "name": "Vault verification failure has an explicit blocker and leaves the verified swap independent",
+      "passed": true,
+      "ms": 1072
+    },
+    {
+      "name": "MAX ETH buy executes with an estimated reserve and leaves ETH for gas",
+      "passed": true,
+      "ms": 1767,
+      "detail": {
+        "initialEthBaseUnits": "5000000000000000",
+        "inputEthBaseUnits": "4652852742351125",
+        "remainingEthBaseUnits": "142118303563407"
+      }
+    },
+    {
+      "name": "PRIO approvals, deposits and sells explain insufficient gas before requesting a signature",
+      "passed": true,
+      "ms": 3754
+    },
+    {
+      "name": "Funded reward claim uses the existing vault and receipt-confirmed UI",
+      "passed": true,
+      "ms": 1587,
+      "detail": {
+        "claimedPrioBaseUnits": "3914894430"
       }
     }
   ],
-  "views": [
+  "transactions": [
     {
-      "width": 1440,
-      "scrollWidth": 1440,
-      "mainNavVisible": true
+      "hash": "0x7539864b6db71a9378b1f9a169d06a208730f7cfc74ac99fe389f6febc66b9bb",
+      "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+      "value": "1000000000000000",
+      "status": "success",
+      "block": "26161705",
+      "network": "local fork only"
     },
     {
-      "width": 850,
-      "scrollWidth": 850,
-      "mainNavVisible": true
+      "hash": "0x28e5291169757e78edca3ebc1831645012a8af4821e860c4e10072839b0fbb82",
+      "to": "0xfd1c234972768c23bb21d655966e0b122dd67a2c",
+      "value": "0",
+      "status": "success",
+      "block": "26161706",
+      "network": "local fork only"
     },
     {
-      "width": 390,
-      "scrollWidth": 390,
-      "mainNavVisible": true
+      "hash": "0x519fc4acb652bcb2bfd6e8bf0b259483cb46152c987d2d2e7367062da6106bad",
+      "to": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+      "value": "0",
+      "status": "success",
+      "block": "26161707",
+      "network": "local fork only"
     },
     {
-      "width": 320,
-      "scrollWidth": 320,
-      "mainNavVisible": true
+      "hash": "0x39534000c96213dd78da1559ee6dadb146d2d631e5522972399324d89fd9960d",
+      "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+      "value": "0",
+      "status": "success",
+      "block": "26161708",
+      "network": "local fork only"
+    },
+    {
+      "hash": "0x84afb0d46921d6302b6117d5cda833d0180796c2de4c3a0d86b553db5acfca2f",
+      "to": "0xfd1c234972768c23bb21d655966e0b122dd67a2c",
+      "value": "0",
+      "status": "success",
+      "block": "26161709",
+      "network": "local fork only"
+    },
+    {
+      "hash": "0xe1355d9724e338b8fc54db801a0e07e7851e97b51b02df2784d86590fba07995",
+      "to": "0x10373c4afc7851b8ab5d94dce7ec1688624cec33",
+      "value": "0",
+      "status": "success",
+      "block": "26161710",
+      "network": "local fork only"
+    },
+    {
+      "hash": "0xaca8a2fff3b3742b740787c57fd942fe253c56cb84c72dd1e8279706e7f71619",
+      "to": "0x10373c4afc7851b8ab5d94dce7ec1688624cec33",
+      "value": "0",
+      "status": "success",
+      "block": "26161711",
+      "network": "local fork only"
+    },
+    {
+      "hash": "0x146925e2ae0fa8cdfd366fc726bd92e83d4b40148a246a75c94b47cc0228d7cf",
+      "to": "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+      "value": "4652852742351125",
+      "status": "success",
+      "block": "26161712",
+      "network": "local fork only"
+    },
+    {
+      "hash": "0xfdbb3b7d82ef4c50c3dfd76479583ee9e96fb8c493aee8dbd8564a569f78e5d2",
+      "to": "0x10373c4afc7851b8ab5d94dce7ec1688624cec33",
+      "value": "0",
+      "status": "success",
+      "block": "26161718",
+      "network": "local fork only"
     }
   ],
-  "consoleErrors": [],
-  "pageErrors": [],
-  "assetFailures": [],
-  "limitations": [
-    "Chromium emulation is not a physical-device or screen-reader test.",
-    "Native 200% browser zoom and DevTools 10%-speed animation replay are not performed; 200% text resize and 320px reflow are checked.",
-    "Wallet rejection is simulated; the funded contract path is tested separately on local Anvil. No public transaction is sent."
+  "screenshots": [
+    "hero-1440.jpg",
+    "hero-390.jpg",
+    "staking-desktop.jpg",
+    "founder-collapsed.jpg",
+    "staking-mobile.jpg",
+    "swap-mobile.jpg"
   ],
-  "browser": "154.0.8037.0"
+  "pageErrors": [],
+  "resourceFailures": [],
+  "consoleErrors": [],
+  "limitations": [
+    "Ethereum fork only. No transaction was broadcast to mainnet.",
+    "Controlled injected provider with ephemeral signing keys; not a physical wallet extension or device.",
+    "Screen-reader, native browser zoom and 10%-speed animation replay were not performed."
+  ],
+  "warmupMs": 2140,
+  "browser": "154.0.8037.0",
+  "fixtureFunding": {
+    "fundingHash": "0x3bb9083602d1d6b5861ef7710f86ced95383d7fe837036f7a37b452cb0ef6ae4",
+    "notifyRewardHash": "0xd74aab7b48921b2a9cce9081f510f589f90035b2346d09d84c9d5645f7966ee5",
+    "amount": "100 PRIO",
+    "purpose": "Fork-only external reward funding; existing staked principal was untouched"
+  },
+  "result": "passed",
+  "anvilErrors": "",
+  "anvilOutputBytes": 0,
+  "rpcFailures": [
+    {
+      "method": "eth_call",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_call",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_getBalance",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_call",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_getBlockByNumber",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_chainId",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_getBlockByNumber",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_chainId",
+      "error": "Controlled RPC outage; retry available"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    },
+    {
+      "method": "eth_call",
+      "error": "Unrelated game adapter read unavailable"
+    }
+  ]
 }

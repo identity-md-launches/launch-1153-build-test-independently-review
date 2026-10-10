@@ -1,0 +1,12 @@
+[
+  {
+    "name": "PrismRiotToken",
+    "actual": "0xf36d2fe28b62f817a4fba0b78bb501b41895eada3982280273c063ad8183f577",
+    "matches": true
+  },
+  {
+    "name": "TreasuryFeeHook",
+    "actual": "0x648426405c5b573f3171227588337b09b11a4bb67c65791dda5b682d51c360d7",
+    "matches": true
+  }
+]

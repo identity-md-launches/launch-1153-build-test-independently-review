@@ -1,27 +1,22 @@
 {
-  "attemptedAtDate": "2026-10-10",
+  "observedAt": "2026-10-10T11:22:39.560491+00:00",
+  "url": "https://prio.sites.imd.fun/",
+  "httpStatus": 200,
+  "publicEntry": [
+    "./assets/index-B8OTgtTI.js"
+  ],
+  "exportEntry": [
+    "./assets/index-CPgS_qZ6.js"
+  ],
+  "publicHtmlSha256": "3a177101153cdac515f16439ad4cfdf908df9f46ec623ff27e0bb6b0ec03ee53",
+  "exportHtmlSha256": "f2ab2f01ea602c353d178dfb62deb0b8ed8e5c97c0f8ea8695b1af679779eca2",
+  "htmlMatches": false,
+  "sameProjectName": "prio.site.identitymd.eth",
+  "previousPinnedCid": "bafybeiafh7kk4rv6c4mgolzqfj463f44sv74gq4v5cptfsr5zxvbbb2umq",
   "command": "imd site publish ./dist --name prio",
-  "label": "prio",
-  "existingProjectName": "prio.site.identitymd.eth",
-  "bundleBytes": 2152735,
   "exitCode": 1,
-  "httpStatus": 503,
-  "error": "member_sites_closed",
-  "detail": "this plane names no member sites",
-  "siteId": null,
-  "newCid": null,
-  "publicUrl": "https://prio.sites.imd.fun/",
-  "newExportPublished": false,
-  "entryModule": "assets/index-B8OTgtTI.js",
-  "sourceDestination": "https://github.com/identity-md-launches/launch-1153-build-test-independently-review",
-  "sourceDelivery": "files prepared for platform Git handoff; this worker did not push or modify .git",
-  "reachability": {
-    "checkedAt": "2026-10-10T08:46:51.289656+00:00",
-    "url": "https://prio.sites.imd.fun/",
-    "httpStatus": 200,
-    "indexSha256": "a5c976818498731204e9ae3b3bd1d5f6e127b902bf7eb6567377aedbe807878f",
-    "servedEntryModule": "./assets/index-DbF_2qlm.js",
-    "expectedEntryModule": "./assets/index-B8OTgtTI.js",
-    "newExportPublished": false
-  }
+  "bundleBytes": 2142515,
+  "publisherOutput": "bundled ./dist: 2142515 bytes\npublish refused (503 member_sites_closed): this plane names no member sites",
+  "publicationStatus": "refused; existing site serves previous export",
+  "newCid": null
 }

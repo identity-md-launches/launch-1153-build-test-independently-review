@@ -1,33 +1,160 @@
 {
-  "observedAt": "2026-10-10T07:58:14.282Z",
-  "blockNumber": "26160686",
-  "timestamp": 1791619091,
-  "verified": true,
-  "verificationErrors": [],
-  "owners": {
-    "hook": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
-    "treasury": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
-    "vault": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
-    "arena": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
-    "adapter": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc"
+  "date": "2026-10-10T10:42:19.014Z",
+  "snapshot": {
+    "blockNumber": "26161505",
+    "timestamp": 1791628931,
+    "verified": true,
+    "verificationErrors": [],
+    "owners": {
+      "hook": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
+      "treasury": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
+      "vault": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
+      "arena": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc",
+      "adapter": "0x13AFB9b5780cd9Ae79c61503Adb69c57845d8EAc"
+    },
+    "codeHashes": {
+      "token": "0xb20491cb4af99861ecd090dc774bf111d370ca35b8f1fb6a2f7d40d219accee6",
+      "hook": "0x7cf93a54894dede572c61811be288bead906e0fd066d9f16cea66abbea394df3",
+      "treasury": "0x4b0e2234cad972f5e494889a0e56f79e988573f007e4039c0e5cd71a7c4d540e",
+      "vault": "0xce954f250e9a9395fcee543591dc55edde30b842304f26c6a57715127c7d2319",
+      "arena": "0xeb4d3436a8107ae907330cc16660d4aae4fbb6115b10ff6f045030fa320c2b7d",
+      "adapter": "0xc072955d3eb16455aea70f4422ead702c995339b5bbeee6b741104ba51d7a1dc"
+    },
+    "hook": {
+      "treasury": "0xB68b1BA47734ba91f3Fc37164bB39D408908Ff7c",
+      "initialized": true,
+      "FEE_BPS": "50",
+      "pendingEth": "0",
+      "pendingClaims": "0",
+      "totalFeeCharged": "551355721393039",
+      "totalFeeDelivered": "551355721393039",
+      "poolId": "0xe5394ebbfa5a16fb3a44c34a41a301092890c1ea5d6747237a6135d314ddd971",
+      "poolKey": {
+        "currency0": "0x0000000000000000000000000000000000000000",
+        "currency1": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
+        "fee": 12500,
+        "tickSpacing": 60,
+        "hooks": "0x65a783CC6725a02Ce349Dc4d72577994Df1760cc"
+      },
+      "token": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
+      "poolManager": "0x000000000004444c5dc75cB358380D2e3dE08A90",
+      "feeBps": "50"
+    },
+    "treasury": {
+      "hook": "0x65a783CC6725a02Ce349Dc4d72577994Df1760cc",
+      "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
+      "imd": "0x0000000000000000000000000000000000000000",
+      "stakingVault": "0x10373C4afC7851B8aB5D94DCE7eC1688624CeC33",
+      "arena": "0xe31277D4E9fBf9Fc35239Dc7D2280e97d5C817C1",
+      "oracleAdapter": "0x002021b4AEb4125ff25E0353b004F6fdeC5f93ed",
+      "executor": "0x0000000000000000000000000000000000000000",
+      "totalIncome": "551355721393039",
+      "unallocated": "551355721393039",
+      "reserve": "0",
+      "imdBudget": "0",
+      "prioBudget": "0",
+      "ownerBudget": "0",
+      "reserveTarget": "500000000000000000",
+      "maxSpendPerSwap": "1000000000000000000",
+      "spendPerWindow": "1000000000000000000",
+      "spentInWindow": "0",
+      "windowStart": "0",
+      "reservePerWindow": "50000000000000000",
+      "reserveSpentInWindow": "0",
+      "reserveWindowStart": "0",
+      "minPrioPerEth": "0",
+      "minImdPerEth": "0",
+      "imdPoolSet": false,
+      "imdPoolKey": {
+        "currency0": "0x0000000000000000000000000000000000000000",
+        "currency1": "0x0000000000000000000000000000000000000000",
+        "fee": 0,
+        "tickSpacing": 0,
+        "hooks": "0x0000000000000000000000000000000000000000"
+      },
+      "prioPurchased": false,
+      "imdPurchased": false
+    },
+    "vault": {
+      "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
+      "rewardFunder": "0xB68b1BA47734ba91f3Fc37164bB39D408908Ff7c",
+      "totalStaked": "10000000000000000000000000",
+      "rewardReserve": "0",
+      "rewardsOwed": "0",
+      "rewardRate": "0",
+      "rewardsDuration": "2592000",
+      "periodFinish": "0"
+    },
+    "arena": {
+      "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
+      "oracle": "0x002021b4AEb4125ff25E0353b004F6fdeC5f93ed",
+      "roundCount": "0",
+      "unallocatedPrizePool": "0",
+      "lockedPrizes": "0",
+      "totalEscrowed": "0",
+      "ENTRY_COST": "102000000000000000000",
+      "MAX_LOSS": "22000000000000000000",
+      "entryCost": "102000000000000000000",
+      "maxLoss": "22000000000000000000"
+    },
+    "adapter": {
+      "arena": "0xe31277D4E9fBf9Fc35239Dc7D2280e97d5C817C1",
+      "intake": "0x0000000000000000000000000000000000000000",
+      "action": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "asset": "0x0000000000000000000000000000000000000000",
+      "price": "0",
+      "callbackConfigured": false,
+      "executor": "0x0000000000000000000000000000000000000000",
+      "budgetPerWindow": "0",
+      "spentInWindow": "0",
+      "windowStart": "0",
+      "paidRequestsEnabled": false,
+      "oracleSigner": "0x5598Aa9146215Bc13eb26f2c692Ad1461Fd32982",
+      "imdBalance": "0"
+    },
+    "pool": {
+      "sqrtPriceX96": "788825949022844318679686391770195",
+      "tick": 184128,
+      "protocolFee": 0,
+      "lpFee": 12500,
+      "liquidity": "87069701097260906302299"
+    },
+    "phaseAComplete": true,
+    "configurationReady": false,
+    "operationsReady": false,
+    "corePaidReady": false,
+    "paidReady": false,
+    "readinessReasons": [
+      "Oracle Intake is not configured",
+      "Oracle callback is not configured",
+      "Paid oracle requests are disabled",
+      "The oracle IMD asset / action are not configured correctly",
+      "Operating price floors / IMD pool are not configured",
+      "Matching budget-limited executors are not configured",
+      "Fee-funded operating budgets are not available",
+      "Oracle payment is not funded within its budget",
+      "No funded active prizes",
+      "Separate server operator readiness has not been supplied to this static site"
+    ],
+    "account": {
+      "address": "0x13afb9b5780cd9ae79c61503adb69c57845d8eac",
+      "eth": "108365800818492631",
+      "prio": "20039361960053570433810536",
+      "staked": "10000000000000000000000000",
+      "earned": "0",
+      "vaultAllowance": "0",
+      "arenaAllowance": "0"
+    }
   },
-  "codeHashes": {
-    "token": "0xb20491cb4af99861ecd090dc774bf111d370ca35b8f1fb6a2f7d40d219accee6",
-    "hook": "0x7cf93a54894dede572c61811be288bead906e0fd066d9f16cea66abbea394df3",
-    "treasury": "0x4b0e2234cad972f5e494889a0e56f79e988573f007e4039c0e5cd71a7c4d540e",
-    "vault": "0xce954f250e9a9395fcee543591dc55edde30b842304f26c6a57715127c7d2319",
-    "arena": "0xeb4d3436a8107ae907330cc16660d4aae4fbb6115b10ff6f045030fa320c2b7d",
-    "adapter": "0xc072955d3eb16455aea70f4422ead702c995339b5bbeee6b741104ba51d7a1dc"
-  },
-  "hook": {
-    "treasury": "0xB68b1BA47734ba91f3Fc37164bB39D408908Ff7c",
-    "initialized": true,
-    "FEE_BPS": "50",
-    "pendingEth": "393544776119406",
-    "pendingClaims": "0",
-    "totalFeeCharged": "393544776119406",
-    "totalFeeDelivered": "0",
-    "poolId": "0xe5394ebbfa5a16fb3a44c34a41a301092890c1ea5d6747237a6135d314ddd971",
+  "buySimulation": {
+    "direction": "buy",
+    "amountIn": "1000000000000000",
+    "amountOut": "97392487522396571067379",
+    "minimumOut": "96905525084784588212042",
+    "slippageBps": 50,
+    "blockNumber": "26161505",
+    "observedAt": 1791628939014,
+    "expiresAt": 1791628999014,
     "poolKey": {
       "currency0": "0x0000000000000000000000000000000000000000",
       "currency1": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
@@ -35,202 +162,11 @@
       "tickSpacing": 60,
       "hooks": "0x65a783CC6725a02Ce349Dc4d72577994Df1760cc"
     },
-    "token": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
-    "poolManager": "0x000000000004444c5dc75cB358380D2e3dE08A90",
-    "feeBps": "50"
-  },
-  "treasury": {
-    "hook": "0x65a783CC6725a02Ce349Dc4d72577994Df1760cc",
-    "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
-    "imd": "0x0000000000000000000000000000000000000000",
-    "stakingVault": "0x10373C4afC7851B8aB5D94DCE7eC1688624CeC33",
-    "arena": "0xe31277D4E9fBf9Fc35239Dc7D2280e97d5C817C1",
-    "oracleAdapter": "0x002021b4AEb4125ff25E0353b004F6fdeC5f93ed",
-    "executor": "0x0000000000000000000000000000000000000000",
-    "totalIncome": "0",
-    "unallocated": "0",
-    "reserve": "0",
-    "imdBudget": "0",
-    "prioBudget": "0",
-    "ownerBudget": "0",
-    "reserveTarget": "500000000000000000",
-    "maxSpendPerSwap": "1000000000000000000",
-    "spendPerWindow": "1000000000000000000",
-    "spentInWindow": "0",
-    "windowStart": "0",
-    "reservePerWindow": "50000000000000000",
-    "reserveSpentInWindow": "0",
-    "reserveWindowStart": "0",
-    "minPrioPerEth": "0",
-    "minImdPerEth": "0",
-    "imdPoolSet": false,
-    "imdPoolKey": {
-      "currency0": "0x0000000000000000000000000000000000000000",
-      "currency1": "0x0000000000000000000000000000000000000000",
-      "fee": 0,
-      "tickSpacing": 0,
-      "hooks": "0x0000000000000000000000000000000000000000"
-    },
-    "prioPurchased": false,
-    "imdPurchased": false
-  },
-  "vault": {
-    "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
-    "rewardFunder": "0xB68b1BA47734ba91f3Fc37164bB39D408908Ff7c",
-    "totalStaked": "10000000000000000000000000",
-    "rewardReserve": "0",
-    "rewardsOwed": "0",
-    "rewardRate": "0",
-    "rewardsDuration": "2592000",
-    "periodFinish": "0"
-  },
-  "arena": {
-    "prio": "0xfd1C234972768C23bb21D655966E0B122Dd67A2C",
-    "oracle": "0x002021b4AEb4125ff25E0353b004F6fdeC5f93ed",
-    "roundCount": "0",
-    "unallocatedPrizePool": "0",
-    "lockedPrizes": "0",
-    "totalEscrowed": "0",
-    "ENTRY_COST": "102000000000000000000",
-    "MAX_LOSS": "22000000000000000000",
-    "entryCost": "102000000000000000000",
-    "maxLoss": "22000000000000000000"
-  },
-  "adapter": {
-    "arena": "0xe31277D4E9fBf9Fc35239Dc7D2280e97d5C817C1",
-    "intake": "0x0000000000000000000000000000000000000000",
-    "action": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "asset": "0x0000000000000000000000000000000000000000",
-    "price": "0",
-    "callbackConfigured": false,
-    "executor": "0x0000000000000000000000000000000000000000",
-    "budgetPerWindow": "0",
-    "spentInWindow": "0",
-    "windowStart": "0",
-    "paidRequestsEnabled": false,
-    "oracleSigner": "0x5598Aa9146215Bc13eb26f2c692Ad1461Fd32982",
-    "imdBalance": "0"
-  },
-  "pool": {
-    "sqrtPriceX96": "1461446703485210103287273052203988822378723970341",
-    "tick": 887271,
-    "protocolFee": 0,
-    "lpFee": 12500,
-    "liquidity": "0"
-  },
-  "phaseAComplete": true,
-  "corePaidReady": false,
-  "paidReady": false,
-  "readinessReasons": [
-    "Paid oracle requests are disabled",
-    "The oracle IMD asset / action are not configured correctly",
-    "Operating price floors / IMD pool are not configured",
-    "Matching budget-limited executors are not configured",
-    "Fee-funded operating budgets are not available",
-    "Oracle payment is not funded within its budget",
-    "No funded active prizes",
-    "Separate server operator readiness has not been supplied to this static site"
-  ],
-  "phaseAPlan": [
-    {
-      "index": 0,
-      "id": "A1",
-      "label": "treasury.bindHook",
-      "contract": "treasury",
-      "functionName": "bindHook",
-      "args": [
-        "0x65a783cc6725a02ce349dc4d72577994df1760cc"
-      ],
-      "target": "0xb68b1ba47734ba91f3fc37164bb39d408908ff7c",
-      "calldata": "0x10202c5400000000000000000000000065a783cc6725a02ce349dc4d72577994df1760cc",
-      "state": "correct",
-      "warning": "Binding freezes when the first hook fees arrive."
-    },
-    {
-      "index": 1,
-      "id": "A2",
-      "label": "treasury.setPrio",
-      "contract": "treasury",
-      "functionName": "setPrio",
-      "args": [
-        "0xfd1c234972768c23bb21d655966e0b122dd67a2c"
-      ],
-      "target": "0xb68b1ba47734ba91f3fc37164bb39d408908ff7c",
-      "calldata": "0x567a8315000000000000000000000000fd1c234972768c23bb21d655966e0b122dd67a2c",
-      "state": "correct",
-      "warning": "PRIO binding freezes after the first PRIO purchase."
-    },
-    {
-      "index": 2,
-      "id": "A3",
-      "label": "treasury.setSinks",
-      "contract": "treasury",
-      "functionName": "setSinks",
-      "args": [
-        "0x10373c4afc7851b8ab5d94dce7ec1688624cec33",
-        "0xe31277d4e9fbf9fc35239dc7d2280e97d5c817c1",
-        "0x002021b4aeb4125ff25e0353b004f6fdec5f93ed"
-      ],
-      "target": "0xb68b1ba47734ba91f3fc37164bb39d408908ff7c",
-      "calldata": "0x9789731f00000000000000000000000010373c4afc7851b8ab5d94dce7ec1688624cec33000000000000000000000000e31277d4e9fbf9fc35239dc7d2280e97d5c817c1000000000000000000000000002021b4aeb4125ff25e0353b004f6fdec5f93ed",
-      "state": "correct",
-      "warning": "Only the verified vault, Arena and adapter are permitted."
-    },
-    {
-      "index": 3,
-      "id": "A4",
-      "label": "hook.bindTreasury",
-      "contract": "hook",
-      "functionName": "bindTreasury",
-      "args": [
-        "0xb68b1ba47734ba91f3fc37164bb39d408908ff7c"
-      ],
-      "target": "0x65a783cc6725a02ce349dc4d72577994df1760cc",
-      "calldata": "0x6e108aa1000000000000000000000000b68b1ba47734ba91f3fc37164bb39d408908ff7c",
-      "state": "correct",
-      "warning": "Effectively permanent immediately: pending fees may be flushed by anyone after this binding."
-    },
-    {
-      "index": 4,
-      "id": "A5",
-      "label": "vault.setRewardFunder",
-      "contract": "vault",
-      "functionName": "setRewardFunder",
-      "args": [
-        "0xb68b1ba47734ba91f3fc37164bb39d408908ff7c"
-      ],
-      "target": "0x10373c4afc7851b8ab5d94dce7ec1688624cec33",
-      "calldata": "0x463e0c76000000000000000000000000b68b1ba47734ba91f3fc37164bb39d408908ff7c",
-      "state": "correct",
-      "warning": "Treasury funds actual reward streams; this does not fund rewards."
-    },
-    {
-      "index": 5,
-      "id": "A6",
-      "label": "arena.setOracle",
-      "contract": "arena",
-      "functionName": "setOracle",
-      "args": [
-        "0x002021b4aeb4125ff25e0353b004f6fdec5f93ed"
-      ],
-      "target": "0xe31277d4e9fbf9fc35239dc7d2280e97d5c817c1",
-      "calldata": "0x7adbf973000000000000000000000000002021b4aeb4125ff25e0353b004f6fdec5f93ed",
-      "state": "correct",
-      "warning": "Applies to new rounds; existing rounds retain their oracle."
-    },
-    {
-      "index": 6,
-      "id": "A7",
-      "label": "adapter.setArena",
-      "contract": "adapter",
-      "functionName": "setArena",
-      "args": [
-        "0xe31277d4e9fbf9fc35239dc7d2280e97d5c817c1"
-      ],
-      "target": "0x002021b4aeb4125ff25e0353b004f6fdec5f93ed",
-      "calldata": "0x1bd5ff28000000000000000000000000e31277d4e9fbf9fc35239dc7d2280e97d5c817c1",
-      "state": "correct",
-      "warning": "One-shot permanent binding. Verify the complete Arena address before signing."
-    }
-  ]
+    "gasEstimate": "140113",
+    "lpFeePpm": 12500,
+    "protocolFeePpm": 0,
+    "combinedPoolFeePpm": 12500,
+    "hookFeeEth": "4975124378110",
+    "hookFeeIsEstimate": true
+  }
 }

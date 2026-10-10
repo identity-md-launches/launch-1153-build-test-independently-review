@@ -26,7 +26,7 @@ try {
   for(let n=0;n<60;n++){try{if(String(await rpc("web3_clientVersion")).toLowerCase().includes("anvil"))break;}catch{}if(n===59)throw new Error("Anvil did not start: "+stderr);await new Promise(r=>setTimeout(r,250));}
   assert.ok(endpoint.startsWith("http://127.0.0.1:"));assert.match(String(await rpc("web3_clientVersion")),/anvil/i);
   // Redirect every production read/simulation/receipt method to this verified loopback Anvil only.
-  for(const key of ["getBlock","getBlockNumber","getChainId","getCode","getBalance","readContract","multicall","simulateContract","waitForTransactionReceipt","getTransactionReceipt","getContractEvents"] as const)mock.method(publicClient,key,local[key] as never);
+  for(const key of ["getBlock","getBlockNumber","getChainId","getCode","getBalance","readContract","multicall","simulateContract","waitForTransactionReceipt","getTransactionReceipt","getContractEvents","estimateContractGas","estimateFeesPerGas"] as const)mock.method(publicClient,key,local[key] as never);
   const walletFor=async(account:Address)=>{await rpc("anvil_impersonateAccount",[account]);await rpc("anvil_setBalance",[account,"0x56bc75e2d63100000"]);const wallet=createWalletClient({account,chain:mainnet,transport:http(endpoint)});wallet.getAddresses=async()=>[account];return wallet;};
   const owner=await walletFor(ADDRESSES.owner);
   const initial=await readSnapshot(ADDRESSES.owner);assert.equal(initial.verified,true);assert.equal(initial.phaseAComplete,true);assert.ok(phaseAPlan(initial).every(s=>s.state==="correct"));

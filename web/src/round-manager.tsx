@@ -2,45 +2,66 @@ import { useEffect, useState } from "react";
 import { parseEther, stringToHex, type Hex } from "viem";
 import { ADDRESSES, sameAddress, readValue, type PinnedQuestion } from "./chain";
 import { executeRoundStep, pinMatches, roundRules, rulesHash, validateRoundDraft, type RoundDraft } from "./chain/round-admin";
-import { type PanelProps, ready, ConnectGate, SnapshotNote, TransactionNotice, useAction } from "./panel-common";
+import { type PanelProps, ActionRequirements, ready, ConnectGate, SnapshotNote, TransactionNotice, useAction } from "./panel-common";
 import { type ProjectOperator } from "./project-state";
-import { t } from "./i18n";
 import { Badge, DownloadButton, fmt } from "./ui";
-export function RoundManager(p:PanelProps & {operator:ProjectOperator}) {
-  const s=p.snapshot,w=p.wallet;
-  const [fields,setFields]=useState<Record<string,string>>(() => { try { const saved=JSON.parse(localStorage.getItem("prism-owner-round-draft-v1")||"null"); if(saved && typeof saved==="object" && !Array.isArray(saved) && Object.values(saved).every(v=>typeof v==="string")) return saved; } catch {} return {mode:"0",source:"owner"}; });
-  const [reviewed,setReviewed]=useState(false);
-  const [prepared,setPrepared]=useState<RoundDraft>();
-  const [pin,setPin]=useState<PinnedQuestion>();
-  const action=useAction(p.refresh);
-  useEffect(()=>{try{localStorage.setItem("prism-owner-round-draft-v1",JSON.stringify(fields));}catch{}},[fields]);
-  const owner=!!w.account&&sameAddress(w.account,ADDRESSES.owner);
-  const update=(key:string,value:string)=>{setFields(f=>({...f,[key]:value}));setReviewed(false);setPrepared(undefined);};
-  useEffect(()=>{let disposed=false;if(s)void readValue<PinnedQuestion>("adapter","pinned",[s.arena.roundCount+1n]).then(value=>{if(!disposed)setPin(value);}).catch(()=>{if(!disposed)setPin(undefined);});return()=>{disposed=true;};},[s?.blockNumber]);
-  const build=()=>{
-    if(!s)throw new Error(t("Önce zincir verisini yenile.","Refresh chain state first."));
-    const integer=(key:string)=>{if(!/^\d+$/.test(fields[key]||""))throw new Error(t(`${key}: tam sayı gir.`,`${key}: enter a whole number.`));return Number(fields[key]);};
-    const utc=(key:string)=>{const value=Date.parse((fields[key]||"")+"Z");if(!Number.isFinite(value))throw new Error(t("Üç UTC son tarihini de gir.","Enter all three UTC deadlines."));return BigInt(Math.floor(value/1000));};
-    if(!fields.body?.trim())throw new Error(t("Operatörün incelediği tam Intake JSON gövdesini gir.","Enter the exact operator-reviewed Intake JSON body."));
-    const json=JSON.parse(fields.body);if(!json||Array.isArray(json)||typeof json!=="object")throw new Error("Intake body must be a JSON object");
-    const d:RoundDraft={id:s.arena.roundCount+1n,mode:integer("mode"),choiceCount:integer("choices"),commitDeadline:utc("commit"),revealDeadline:utc("reveal"),resultDeadline:utc("result"),prize:parseEther(fields.prize||""),bossThreshold:fields.mode==="2"?integer("threshold"):0,questionHash:fields.questionHash as Hex,minPanel:integer("panel"),minQuorum:integer("quorum"),body:stringToHex(fields.body),source:fields.source==="imd"?"imd":"owner",proposalId:fields.proposalId||""};
-    validateRoundDraft(d,s);return d;
-  };
-  if(!owner)return <div className="panel"><h3>{t("Yalnızca proje sahibi","Project owner only")}</h3><p>{t("Tur yönetimi için doğrulanmış sahip cüzdanını bağla. Diğer cüzdanlar bu panelden işlem yapamaz.","Connect the verified owner wallet to manage rounds. Other wallets cannot transact here.")}</p><ConnectGate wallet={w}/></div>;
-  const pinned=!!prepared&&!!pin&&!!s&&pinMatches(pin,prepared,s);
-  const operational=ready(p)&&!!s?.operationsReady&&!!p.operator.proof?.serviceReady;
-  return <div className="panel"><p className="panel-intro">{t("Yeni tur iki ayrı imza ister: önce soruyu sabitle, sonra aynı giriş süresiyle turu oluştur. Her işlem simüle edilir, makbuz beklenir ve zincirden tekrar okunur. Mevcut tur kuralları değişmez.","A new round requires two signatures: pin the question, then create the round with the same commit deadline. Each transaction is simulated, receipt-checked and read back. Existing rules cannot change.")}</p><ConnectGate wallet={w}/>
-    <div className="info-box"><strong>{t("Sıradaki tur","Next round")}: {s?(s.arena.roundCount+1n).toString():"—"} · {t("Kullanılabilir ödül","Available prize")}: {fmt(s?.arena.unallocatedPrizePool)} PRIO</strong><p>{!operational?t("Önce B aşamasını, ücretlerden oluşan işletme bütçesini, IMD ödemesini ve imzalı operatör hazırlığını tamamla. Fon yoksa yalnızca ücretsiz pratik çalışır.","Complete Phase B, fee-funded operating budgets, IMD payment and signed operator readiness first. Without funding, only free practice operates."):t("İşletme kontrolleri geçti. İncelenmiş soru ve ayrılabilir ödül ile taslağı hazırla.","Operating checks passed. Prepare the draft with a reviewed question and available prize budget.")}</p><button className="text-button" onClick={p.onReadiness}>{t("Hazırlık ayrıntılarına git","Go to readiness details")}</button></div>
-    <ol className="round-sequence"><li>{t("Soru ve değişmez puanlamayı incele","Review the question and immutable scoring")}</li><li>OracleAdapter.pinQuestion</li><li>Arena.createRound</li></ol>
-    <div className="panel-grid"><label className="field">{t("Oyun","Game")}<select value={fields.mode} onChange={e=>update("mode",e.target.value)}><option value="0">Vault Raid</option><option value="1">Faction Duel</option><option value="2">Prism Colossus</option></select></label><label className="field">{t("İçerik kaynağı","Content source")}<select value={fields.source} onChange={e=>update("source",e.target.value)}><option value="owner">{t("Sahibin incelediği soru","Owner-reviewed question")}</option><option value="imd">{t("Operatörün incelediği IMD önerisi","Operator-reviewed IMD proposal")}</option></select></label>
-      {[["choices",t("Seçenek sayısı (Duel: 2)","Choice count (Duel: 2)")],["prize",t("Fonlanmış ödül (PRIO)","Funded prize (PRIO)")],["panel",t("Minimum panel (≥ 2)","Minimum panel (≥ 2)")],["quorum",t("Minimum uzlaşma (≥ 2)","Minimum quorum (≥ 2)")],...(fields.mode==="2"?[["threshold",t("Doğru oyuncu eşiği","Correct-player threshold")]]:[])].map(([key,label])=><label key={key} className="field">{label}<input name={`round-${key}`} inputMode={key==="prize"?"decimal":"numeric"} value={fields[key]||""} onChange={e=>update(key,e.target.value)}/></label>)}
-      {[["commit",t("Giriş kapanışı (UTC)","Commit deadline (UTC)")],["reveal",t("Açıklama kapanışı (UTC)","Reveal deadline (UTC)")],["result",t("Sonuç son tarihi (UTC)","Result deadline (UTC)")]].map(([key,label])=><label className="field" key={key}>{label}<input type="datetime-local" name={`round-${key}`} value={fields[key]||""} onChange={e=>update(key,e.target.value)}/></label>)}
+export function RoundManager(p: PanelProps & {
+    operator: ProjectOperator;
+}) {
+    const s = p.snapshot, w = p.wallet;
+    const [fields, setFields] = useState<Record<string, string>>(() => { try {
+        const saved = JSON.parse(localStorage.getItem("prism-owner-round-draft-v1") || "null");
+        if (saved && typeof saved === "object" && !Array.isArray(saved) && Object.values(saved).every(v => typeof v === "string"))
+            return saved;
+    }
+    catch { } return { mode: "0", source: "owner" }; });
+    const [reviewed, setReviewed] = useState(false);
+    const [prepared, setPrepared] = useState<RoundDraft>();
+    const [pin, setPin] = useState<PinnedQuestion>();
+    const action = useAction(p.refresh);
+    useEffect(() => { try {
+        localStorage.setItem("prism-owner-round-draft-v1", JSON.stringify(fields));
+    }
+    catch { } }, [fields]);
+    const owner = !!w.account && sameAddress(w.account, ADDRESSES.owner);
+    const update = (key: string, value: string) => { setFields(f => ({ ...f, [key]: value })); setReviewed(false); setPrepared(undefined); };
+    useEffect(() => { let disposed = false; if (s)
+        void readValue<PinnedQuestion>("adapter", "pinned", [s.arena.roundCount + 1n]).then(value => { if (!disposed)
+            setPin(value); }).catch(() => { if (!disposed)
+            setPin(undefined); }); return () => { disposed = true; }; }, [s?.blockNumber]);
+    const build = () => {
+        if (!s)
+            throw new Error("Refresh chain state first.");
+        const integer = (key: string) => { if (!/^\d+$/.test(fields[key] || ""))
+            throw new Error(`${key}: enter a whole number.`); return Number(fields[key]); };
+        const utc = (key: string) => { const value = Date.parse((fields[key] || "") + "Z"); if (!Number.isFinite(value))
+            throw new Error("Enter all three UTC deadlines."); return BigInt(Math.floor(value / 1000)); };
+        if (!fields.body?.trim())
+            throw new Error("Enter the exact operator-reviewed Intake JSON body.");
+        const json = JSON.parse(fields.body);
+        if (!json || Array.isArray(json) || typeof json !== "object")
+            throw new Error("Intake body must be a JSON object");
+        const d: RoundDraft = { id: s.arena.roundCount + 1n, mode: integer("mode"), choiceCount: integer("choices"), commitDeadline: utc("commit"), revealDeadline: utc("reveal"), resultDeadline: utc("result"), prize: parseEther(fields.prize || ""), bossThreshold: fields.mode === "2" ? integer("threshold") : 0, questionHash: fields.questionHash as Hex, minPanel: integer("panel"), minQuorum: integer("quorum"), body: stringToHex(fields.body), source: fields.source === "imd" ? "imd" : "owner", proposalId: fields.proposalId || "" };
+        validateRoundDraft(d, s);
+        return d;
+    };
+    if (!owner)
+        return <div className="panel"><h3>{"Project owner only"}</h3><p>{"Connect the verified owner wallet to manage rounds. Other wallets cannot transact here."}</p><ConnectGate wallet={w}/></div>;
+    const pinned = !!prepared && !!pin && !!s && pinMatches(pin, prepared, s);
+    const operational = ready(p) && !!s?.operationsReady && !!p.operator.proof?.serviceReady;
+    return <div className="panel"><p className="panel-intro">{"A new round requires two signatures: pin the question, then create the round with the same commit deadline. Each transaction is simulated, receipt-checked and read back. Existing rules cannot change."}</p><ConnectGate wallet={w}/>
+    <div className="info-box"><strong>{"Next round"}: {s ? (s.arena.roundCount + 1n).toString() : "—"} · {"Available prize"}: {fmt(s?.arena.unallocatedPrizePool)} PRIO</strong><p>{!operational ? "Complete Phase B, fee-funded operating budgets, IMD payment and signed operator readiness first. Without funding, only free practice operates." : "Operating checks passed. Prepare the draft with a reviewed question and available prize budget."}</p><button className="text-button" onClick={p.onReadiness}>{"Go to readiness details"}</button></div>
+    <ol className="round-sequence"><li>{"Review the question and immutable scoring"}</li><li>OracleAdapter.pinQuestion</li><li>Arena.createRound</li></ol>
+    <div className="panel-grid"><label className="field">{"Game"}<select value={fields.mode} onChange={e => update("mode", e.target.value)}><option value="0">Vault Raid</option><option value="1">Faction Duel</option><option value="2">Prism Colossus</option></select></label><label className="field">{"Content source"}<select value={fields.source} onChange={e => update("source", e.target.value)}><option value="owner">{"Owner-reviewed question"}</option><option value="imd">{"Operator-reviewed IMD proposal"}</option></select></label>
+      {[["choices", "Choice count (Duel: 2)"], ["prize", "Funded prize (PRIO)"], ["panel", "Minimum panel (≥ 2)"], ["quorum", "Minimum quorum (≥ 2)"], ...(fields.mode === "2" ? [["threshold", "Correct-player threshold"]] : [])].map(([key, label]) => <label key={key} className="field">{label}<input name={`round-${key}`} inputMode={key === "prize" ? "decimal" : "numeric"} value={fields[key] || ""} onChange={e => update(key, e.target.value)}/></label>)}
+      {[["commit", "Commit deadline (UTC)"], ["reveal", "Reveal deadline (UTC)"], ["result", "Result deadline (UTC)"]].map(([key, label]) => <label className="field" key={key}>{label}<input type="datetime-local" name={`round-${key}`} value={fields[key] || ""} onChange={e => update(key, e.target.value)}/></label>)}
     </div>
-    <label className="field">{t("İncelenmiş kanonik soru hash'i (bytes32)","Reviewed canonical question hash (bytes32)")}<input value={fields.questionHash||""} name="question-hash" spellCheck={false} onChange={e=>update("questionHash",e.target.value)}/><small>{t("Protokolün check/quote sonucundan alınır. Gövde hash'inden türetilmez veya tahmin edilmez.","Obtain from the protocol check/quote review. Never substitute a guessed hash or a body hash.")}</small></label>
-    <label className="field">{t("Yayımlanacak tam Intake gövdesi (JSON)","Exact Intake body to publish (JSON)")}<textarea name="question-body" value={fields.body||""} rows={6} spellCheck={false} onChange={e=>update("body",e.target.value)}/><small>{t("Soru ve seçenek anlamları burada açık olmalı. Bu içerik pinQuestion ile herkese açık olur; sır veya API anahtarı yazma.","Publish the question and option meanings here. pinQuestion makes this content public; do not include secrets or API credentials.")}</small></label>
-    {fields.source==="imd"&&<label className="field">{t("İmzalı rapordaki incelenmiş öneri kimliği","Reviewed proposal ID in signed status")}<input name="proposal-id" value={fields.proposalId||""} onChange={e=>update("proposalId",e.target.value)}/><small>{t("Soru, gövde ve kural hash'leri operatör raporuyla eşleşmelidir. Sahip onayı yalnızca bu gelecek tur içindir.","Question, body and rules hashes must match the operator report. Owner approval applies only to this future round.")}</small></label>}
-    <button className="button secondary" disabled={action.busy} onClick={()=>void action.run(async()=>{setPrepared(build());setReviewed(false);})}>{t("Taslağı doğrula ve incele","Validate and review draft")}</button>
-    {prepared&&<div className="sub-panel"><Badge tone={pinned?"cyan":"yellow"}>{pinned?t("Soru zincirde eşleşiyor","Pinned question matches"):t("Henüz bu taslak sabitlenmedi","This draft is not pinned yet")}</Badge><p>{t("Giriş 100 emanet + 2 ücret; maksimum kayıp 22 PRIO + gas. Doğru: 100 + ödül payı, yanlış: 90, açıklama yok: 80, iptal: 102. Boss eşiği değişmez.","Entry: 100 escrow + 2 fee; maximum loss 22 PRIO + gas. Correct: 100 + prize share, wrong: 90, missed reveal: 80, cancellation: 102. Boss threshold is immutable.")}</p><p className="code">rulesHash: {rulesHash(prepared)}</p><details className="rules"><summary>{t("Yayımlanacak değişmez kurallar","Published immutable rules")}</summary><pre className="code">{JSON.stringify(JSON.parse(roundRules(prepared)),null,2)}</pre></details><DownloadButton filename={`prism-round-${prepared.id}-rules.json`} data={roundRules(prepared)}>{t("Kural belgesini indir","Download rules document")}</DownloadButton><label className="check-field"><input type="checkbox" checked={reviewed} onChange={e=>setReviewed(e.target.checked)}/>{t("Soru, seçenekler, tam protokol gövdesi, puanlama, UTC süreleri ve gerçek ödül bütçesini inceledim. ETH gas ve iki imzayı onaylıyorum. Kurallar gelecekteki bu tur açılınca kilitlenir.","I reviewed the question, choices, exact protocol body, scoring, UTC deadlines and actual prize budget. I approve ETH gas and two signatures. Rules lock when this future round opens.")}</label><div className="action-row"><button className="button secondary" disabled={!operational||!reviewed||action.busy||pinned} onClick={()=>void action.run(async update=>{await executeRoundStep(w.wallet!,w.account!,prepared,"pin",p.operator.proof,update);setPin(await readValue<PinnedQuestion>("adapter","pinned",[prepared.id]));})}>{t("1. Soruyu sabitle","1. Pin question")}</button><button className="button primary" disabled={!operational||!reviewed||action.busy||!pinned} onClick={()=>void action.run(async update=>{await executeRoundStep(w.wallet!,w.account!,prepared,"create",p.operator.proof,update);setPrepared(undefined);setReviewed(false);})}>{t("2. Fonlanmış turu oluştur","2. Create funded round")}</button></div></div>}
-    <TransactionNotice action={action}/><SnapshotNote {...p}/><p className="tiny">{t("Oyuncu emanetleri, iadeler, ödül muhasebesi ve harcama limitleri mevcut sözleşmeler tarafından uygulanır. Yeni sözleşme dağıtılmaz.","Existing contracts enforce player deposits, refunds, prize accounting and spend caps. No new contract is deployed.")}</p>
+    <label className="field">{"Reviewed canonical question hash (bytes32)"}<input value={fields.questionHash || ""} name="question-hash" spellCheck={false} onChange={e => update("questionHash", e.target.value)}/><small>{"Obtain from the protocol check/quote review. Never substitute a guessed hash or a body hash."}</small></label>
+    <label className="field">{"Exact Intake body to publish (JSON)"}<textarea name="question-body" value={fields.body || ""} rows={6} spellCheck={false} onChange={e => update("body", e.target.value)}/><small>{"Publish the question and option meanings here. pinQuestion makes this content public; do not include secrets or API credentials."}</small></label>
+    {fields.source === "imd" && <label className="field">{"Reviewed proposal ID in signed status"}<input name="proposal-id" value={fields.proposalId || ""} onChange={e => update("proposalId", e.target.value)}/><small>{"Question, body and rules hashes must match the operator report. Owner approval applies only to this future round."}</small></label>}
+    <button className="button secondary" disabled={action.busy} onClick={() => void action.run(async () => { setPrepared(build()); setReviewed(false); })}>{"Validate and review draft"}</button>
+    {prepared && <div className="sub-panel"><Badge tone={pinned ? "cyan" : "yellow"}>{pinned ? "Pinned question matches" : "This draft is not pinned yet"}</Badge><p>{"Entry: 100 escrow + 2 fee; maximum loss 22 PRIO + gas. Correct: 100 + prize share, wrong: 90, missed reveal: 80, cancellation: 102. Boss threshold is immutable."}</p><p className="code">rulesHash: {rulesHash(prepared)}</p><details className="rules"><summary>{"Published immutable rules"}</summary><pre className="code">{JSON.stringify(JSON.parse(roundRules(prepared)), null, 2)}</pre></details><DownloadButton filename={`prism-round-${prepared.id}-rules.json`} data={roundRules(prepared)}>{"Download rules document"}</DownloadButton><label className="check-field"><input type="checkbox" checked={reviewed} onChange={e => setReviewed(e.target.checked)}/>{"I reviewed the question, choices, exact protocol body, scoring, UTC deadlines and actual prize budget. I approve ETH gas and two signatures. Rules lock when this future round opens."}</label><div className="action-row"><button className="button secondary" disabled={!operational || !reviewed || action.busy || pinned} onClick={() => void action.run(async (update) => { await executeRoundStep(w.wallet!, w.account!, prepared, "pin", p.operator.proof, update); setPin(await readValue<PinnedQuestion>("adapter", "pinned", [prepared.id])); })}>{"1. Pin question"}</button><button className="button primary" disabled={!operational || !reviewed || action.busy || !pinned} onClick={() => void action.run(async (update) => { await executeRoundStep(w.wallet!, w.account!, prepared, "create", p.operator.proof, update); setPrepared(undefined); setReviewed(false); })}>{"2. Create funded round"}</button></div></div>}
+    <ActionRequirements p={p} busy={action.busy} reasons={[!operational && "Pinning and creation require verified configuration, fee-funded budgets and a signed ready operator. Open game operating diagnostics for each missing requirement.", !!prepared && !reviewed && "Review the prepared rules and select the confirmation checkbox.", !!prepared && !pinned && "Create funded round: first confirm the matching pinned question.", !!prepared && pinned && "Pin question: this draft is already pinned; continue to Create funded round."]}/>
+    <TransactionNotice action={action}/><SnapshotNote {...p}/><p className="tiny">{"Existing contracts enforce player deposits, refunds, prize accounting and spend caps. No new contract is deployed."}</p>
   </div>;
 }

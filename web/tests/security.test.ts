@@ -24,6 +24,9 @@ const localStorageFixture = {
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: localStorageFixture })
 beforeEach(() => {
   memory.clear()
+  mock.method(publicClient, 'estimateContractGas', async () => 50000n)
+  mock.method(publicClient, 'estimateFeesPerGas', async () => ({maxFeePerGas: 2000000000n, maxPriorityFeePerGas: 1000000000n}))
+  mock.method(publicClient, 'getBalance', async () => 10n ** 20n)
   mock.method(globalThis, 'fetch', async () => { throw new Error('Unexpected network request in offline safety suite') })
 })
 afterEach(() => mock.restoreAll())

@@ -17,6 +17,8 @@ import {
   type ContractName,
 } from "./config";
 import { readSnapshot, readValue, readRound } from "./read";
+import { readStaking, readSwap } from "./financial-read";
+import { requireGas } from "./gas";
 import { verifyOperatorStatus, type OperatorProof } from "./operator";
 import { commitmentOf, requireSavedCommitment } from "./secrets";
 import hashes from "./runtime-hashes.json";
@@ -44,18 +46,24 @@ export async function executeCall(
   },
   label: string,
   onStatus?: StatusListener,
+  beforeSign?: () => void,
 ): Promise<TransactionReceipt> {
   await requireWallet(wallet, account);
   onStatus?.({ stage: "simulating", label });
-  const { request } = await publicClient.simulateContract({
+  await publicClient.simulateContract({
     ...call,
     account,
     chain: mainnet,
   });
+  const gas = await requireGas(account, call);
   await requireWallet(wallet, account);
+  beforeSign?.();
   onStatus?.({ stage: "wallet", label });
   const hash = await wallet.writeContract({
-    ...request,
+    ...call,
+    gas: gas.gasLimit,
+    maxFeePerGas: gas.maxFeePerGas,
+    maxPriorityFeePerGas: gas.maxPriorityFeePerGas,
     account,
     chain: mainnet,
   });
@@ -172,6 +180,15 @@ export async function runContractAction(
       `${contract}.${functionName}`,
       onStatus,
     );
+  }
+  // Financial actions verify their own dependencies, independently of game configuration.
+  if ((contract === "vault" && functionName === "stake") ||
+      (contract === "token" && functionName === "approve" &&
+       [ADDRESSES.vault, ADDRESSES.permit2].some(a => sameAddress(a, String(args[0]))))) {
+    const state = contract === "vault" || sameAddress(String(args[0]), ADDRESSES.vault)
+      ? await readStaking(account) : await readSwap(account);
+    if (!state.verified) throw new Error(state.verificationErrors.join("; "));
+    return executeCall(wallet, account, { address: ADDRESSES[contract], abi: ABIS[contract], functionName, args }, `${contract}.${functionName}`, onStatus);
   }
   const snapshot = await readSnapshot(account);
   if (!snapshot.verified)

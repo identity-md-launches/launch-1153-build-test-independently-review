@@ -1,55 +1,61 @@
 # PRISM RIOT validation — 2026-10-10
 
-Worker-performed checks, not independent network certification. Website implementation and local verification are complete for the requested scope; public update and GitHub acceptance remain **incomplete pending platform delivery**. The official publisher refused the existing `prio` name with HTTP 503 `member_sites_closed`; the reachable public URL still serves the previous entry module. See [PUBLICATION.md](PUBLICATION.md).
+These are worker-performed checks, not independent certification. The source and static export continue accepted website commit `230e8aaa2d52802a00427c8746f23ecc0238a9d7`. Publication status is recorded separately in [PUBLICATION.md](PUBLICATION.md); reaching the old site does not prove this update was published.
 
-## Scope and fresh state
+## Diagnosis and fresh mainnet evidence
 
-Reviewed the Turkish-first/English lobby, distinct practice/live game actions, real scoring/costs, faction reactions, staking, readiness, owner Phase A/B and pin/create management, recovery, seasons/badges/challenges and signed operator status. Existing contracts, logo, art, X, budgets and locked rules are preserved. No Solidity, existing build configuration, manifests/lockfiles, dependencies, ignore files, `.git/`, `.github/` or environment files were changed. ABI JSON whitespace was compacted without changing semantic content or canonical hashes.
+The worker loaded https://prio.sites.imd.fun/ in Chromium with a controlled injected provider, connected, disconnected, then emitted `accountsChanged`. The delivered application showed “Wallet connected” while its WalletClient was absent. Staking approval/deposit/revoke controls were disabled without identifying that missing client, yet the panel said “Deposits work”. No signature was requested during reproduction. `docs/before-reproduction.json` preserves the observed text and button states.
 
-Mainnet runtime/source/ABI verification at block **26160822** passed for all six deployed contracts; both deployment receipts succeeded. Fresh browser reads reconfirmed all nine Phase A bindings. Phase B, operating balances, adapter IMD, staking rewards, rounds and prizes remained incomplete/zero. Missing settings are not reported as RPC or frontend errors. Chain/readiness JSON records are dated; they are not future guarantees.
+At fresh block **26161505**, delivered `readSnapshot(owner)` returned `verified=true`, no verification errors, all Phase A bindings complete and pool liquidity **87069701097260906302299**. Reward reserve/rate were zero; paid-game setup was incomplete. A read-only 0.001 ETH buy quote succeeded. This contradicted a blanket broken-pool/oracle diagnosis. `docs/readiness-snapshot.json` records this dated observation, not a future guarantee.
 
-Final export: `assets/index-B8OTgtTI.js`, `assets/index-DCGITOhP.css`, lazy financial panels, `project.json` and all original required media. No operator endpoint was available; its documented project setting remains `null`.
+The corrected mainnet read-only regression at block **26161586** passed **12 checks**: runtime/owners/pool, readiness, recovery reads, fresh buy quote, protected router encoding, actual owner router simulation, event reads and candidate IMD quote. The RPC rejected the old OR-topic event filter; bounded address-only reads plus ABI decoding fixed it and returned 28 real events. No mainnet transaction, approval, signature or deployment was submitted.
 
-## Actual commands and results
+Pinned token/hook ABI hashes were independently recomputed and matched the deployment input. Other existing ABI/runtime records remain unchanged; no contracts or Foundry dependencies were modified. The prior accepted-source compilation record is retained as historical provenance, not claimed as a compilation performed in this job.
 
-| Executed check | Result |
+## Actual checks
+
+| Command | Result |
 | --- | --- |
-| Read pinned project/deployment/network, Better Interface workflow/core six domains/documentation reference; read accepted source and deployment guide | Completed before implementation/review |
-| `npm ci --prefix /tmp/prism-riot-build/web --cache /tmp/prism-riot-npm-cache --no-audit --no-fund` | Passed, 94 locked packages; no dependency folder in repository |
-| `npm run typecheck --prefix /tmp/prism-riot-build/web` | Passed; final build repeats `tsc --noEmit` |
-| `npm run build --prefix /tmp/prism-riot-build/web` | Passed after final practice readability fix; 2,673 modules, relative static export copied to root `dist/` |
-| `npm test --prefix /tmp/prism-riot-build/web` | **40 passed, 0 failed** on final source |
-| `forge build --root /tmp/prism-accepted` | Passed; accepted commit 0345ffa…, 132 Solidity files, 0.8.26; existing compiler/lint warnings only |
-| `node /tmp/prism-riot-build/web/scripts/verify-chain.mjs /tmp/prism-accepted` | Passed, block **26160822**; freshly compiled ABI/runtime/owners/receipts/PoolKey checks |
-| `node /tmp/prism-riot-build/web/scripts/check-chain.mjs` | **12 passed**, read-only block **26160827**; actual buy quote/router simulation, sell failure handling, protocol price/candidate IMD quote and recovery/configuration checks |
-| `PRISM_FORK_REPORT="$PWD/artifacts/fork-results.json" /tmp/prism-riot-build/web/node_modules/.bin/tsx /tmp/prism-riot-build/web/scripts/fork-check.ts` | **Six funded lifecycle groups passed**, fork block **26160788**, loopback Anvil only |
-| `PRISM_REVIEW_DEPENDENCIES=/tmp/prism-riot-build/web PRISM_REVIEW_CHROMIUM=/home/imd2/.cache/ms-playwright/chromium-1246/chrome-linux64/chrome node web/scripts/browser-check.mjs` | **29 passed, 0 failed** against final production export at `/preview/` |
-| `imd site publish ./dist --name prio` | Exit 1: **503 member_sites_closed**; 2,152,735-byte local export bundle; publication refused |
-| Public URL fetch | HTTP 200; old entry module, so new export publication is **not** claimed |
-| `python3 web/scripts/check-bundle.py` | Final results in `BUNDLE-CHECK.json`: protected paths/ABIs/assets/relative URLs/dependency cleanup and byte cap |
+| `npm ci` with existing locked dependencies, then external `/tmp/prio-check/web` working copy | Dependencies available for checks; no dependency directory/cache/archive is delivered. Existing manifests and lockfiles unchanged. |
+| `npm run typecheck --prefix /tmp/prio-check/web` | Passed on final source. |
+| `npm run build --prefix /tmp/prio-check/web` | Passed; repeats `tsc --noEmit`, then Vite. Final output copied to root `dist/`, replacing obsolete hashed files. Relative asset URLs. Existing warnings about chunk size and a static/dynamic import are informational. |
+| `npm test --prefix /tmp/prio-check/web` | **47 passed, 0 failed**. |
+| `node /tmp/prio-check/web/scripts/check-chain.mjs` | **12 passed**, read-only mainnet block 26161586. |
+| `PRISM_FORK_REPORT="$PWD/artifacts/fork-results.json" /tmp/prio-check/web/node_modules/.bin/tsx /tmp/prio-check/web/scripts/fork-check.ts` | **6 funded lifecycle groups passed**, local Anvil fork only. |
+| `PRISM_REVIEW_ROOT="$PWD" node /tmp/prio-check/web/scripts/browser-check.mjs` | **32 passed, 0 failed**, Chromium 154.0.8037.0, fork block **26161704**. **9 signed UI transactions**, all local; zero page/console errors or missing static assets. |
+| `python3 web/scripts/check-bundle.py` | `BUNDLE-CHECK.json` records final complete file-byte and archive checks, unchanged protected files, all required art/fonts and relative references. |
 
-The isolated build copied `web/src`, `public`, tests/scripts and unchanged frontend configuration/manifest/lockfile into `/tmp/prism-riot-build/web`. The final export copy replaced obsolete hashed files. This arrangement respects the task's prohibition on touching repository `node_modules` or existing dependency configuration. Ordinary future development commands are in README.
+The external working copy contains the same source, public files, tests/scripts and unchanged configuration/manifests/lockfile. Production `dist/` was served under `/preview/` for browser validation. Tool output logs are preserved under `artifacts/`; persistent results live in `docs/` because the artifact directory is separately uploaded.
 
-## Useful interaction coverage
+## Regression coverage and signed local execution
 
-The 40 unit tests cover exact/bounded approvals and router calldata, slippage/quote expiry, wallet account/network races, failed/replaced receipts, private reveal storage/export/import, early/late/mismatched reveal protection, independent recovery, Phase A order/conflict/owner checks, signed operator freshness/identity/budget guards, first-round service readiness, reviewed challenge hashes, precise large/dust/rate formatting and season/prize scoring.
+The 47 unit regressions cover integer percentage/dust/large/zero balance math, invalid amount syntax, gas buffer rounding and affordability, quote minimum/expiry/router calldata, exact Permit2 allowance bounds, action-specific contract verification, nested wallet errors, account/network guards, receipt replacement/reversion, reveal-secret storage/import/export, independent recovery, Phase A/owner checks, signed operator freshness/budgets, reviewed round inputs and season/prize accounting.
 
-The local fork uses existing mainnet bytecode; **zero redeployments and zero public broadcasts**. Fixture fee ETH enters only from the impersonated bound hook, then actual treasury allocation and mainnet-pool PRIO/IMD purchases fund Arena, Adapter and staking. Production owner pin/create functions open three modes with matching deadlines. Nine entries use exact approvals and persisted/exported commitments; early reveal is refused. Real reveals, ephemeral fork-only signed attestation, settle and claims yield 200/90/80 PRIO; unmet Boss threshold yields 100/90/80. Double claims revert. An unresolved round cancels after the real grace period; three refunds return 102 and escrow/locked prizes clear. These fixture budgets/signers are not mainnet settings. The hosted paid IMD service was not called. See `fork-results.json` and the reproducible runner.
+The production-browser runner uses a fresh local Ethereum fork and controlled EIP-6963 providers. It warms read-only code/storage/account caches first; this does not replace any browser verification or mutate contract storage. The final Anvil fixture uses automatic transaction mining, four threads, block-number state reads and bounded upstream timeouts/retries. Earlier interval-mining runs became unresponsive even to `eth_chainId`; the exact Anvil cause was not isolated. The final fixture completed in one run. Public RPC requests are intercepted to the loopback fork with an explicit read/simulation allowlist. Ephemeral keys sign only to that local endpoint. The runner covers:
 
-The 29 browser checks cover all three primary routes, visible instructions/costs, practice without wallet transactions, keyboard validation/restart/modal focus, three local badges, zero rounds and old-round lookup/recovery errors, zero-funded staking, four visible faction reactions and offscreen stills, motion pause/reduced motion, opt-in sound, English toggle, missing wallet, verified empty season, responsive reflow, owner-only navigation/completed binding skips, blank Phase B inputs, wrong network/owner, rejected exact approval, incomplete binding fixture, RPC outage, offline configured endpoint and expired signed report. Wallet rejection is injected and sends nothing publicly. Final run: zero application/console errors and zero missing static assets. Axe scans of Turkish mobile and English desktop lobby reported zero violations.
+- Saved Turkish preference removal; English player/owner screens; buying above the fold; responsive layout and asset loading.
+- Account access without signing; multiple wallets; disconnect/reconnect; saved restoration; locked wallet; account/chain changes; verified/failed network switching; disconnect during asynchronous simulation.
+- Invalid/zero/insufficient balances; editable rounded percentages in all four amount flows; ETH gas reserve/MAX; missing and raced quotes, automatic expiry refresh, rejected wallet request and explicit retry.
+- Signed buy; two exact sell approvals including Permit2 and signed sell; exact staking approval, deposit while rewards are zero, own-principal withdrawal and separately funded reward claim. Receipts and on-chain balances/allowances are checked.
+- RPC failover/outage/recovery; unrelated game RPC failures; target verification failure; separate game readiness; hidden/collapsed verified-owner controls and completed Phase A skips.
+- Keyboard practice/dialog focus, faction selection, opt-in sound, reduced motion, mobile shortcuts, axe scans and computed solid-color contrast.
 
-## Better Interface review
+In the final browser MAX case, a wallet started with **0.005 ETH**, entered **0.004652852742351125 ETH** and retained **0.000142118303563407 ETH** after gas. Separate zero-ETH fixtures blocked sell approval, vault approval and an already-approved deposit before any browser signing request. The funded claim fixture transferred 100 PRIO from a funded test wallet to the existing treasury, approved/notified the existing vault through its funder, advanced local time and claimed an actual positive reward while preserving principal. These fixture transactions are separate from the nine browser-submitted transactions.
 
-All six domains were read, applied and reviewed against source and rendered production output. Findings and bounded measurements are consolidated in [INTERFACE-REVIEW.md](INTERFACE-REVIEW.md). `DESIGN.md` describes implemented tokens/fonts/layout/components, not proposed work. Screenshots were actually viewed at desktop/mobile sizes; final practice result readability was corrected and recaptured after a rebuild. `browser-results.json` is the full machine-readable interaction record.
+The separate full game fork regression uses the existing deployed bytecode and fixture fee income. Actual treasury allocation and PRIO/IMD pool purchases fund Arena/Adapter/staking. Production owner functions pin and create all three modes; nine entries use exact approvals and saved/exported secrets. Reveals, ephemeral signed attestations, settlements and claims pay **200/90/80 PRIO**, with unmet Boss threshold **100/90/80**; double claims revert. An unresolved round cancels after its grace period and three refunds each return **102 PRIO**, clearing escrow/locked prizes. These are local signed executions, not hosted-service calls or completed mainnet games. `fork-results.json` contains the actual evidence.
 
-## Limitations and remaining handoff
+## Interface review and limitations
 
-- Public project update/GitHub delivery requires platform acceptance/publisher access. This worker supplies the finished source/export; no new deployed CID/commit is claimed.
-- Phase B signatures, ETH gas, fee income/allocations, real rewards/prizes and a separately operated server remain owner/operator work. Correct Phase A bindings need no repeated signatures. No production owner value or URL was guessed.
-- Fork verification uses an ephemeral local signer and fixture income. It proves local execution of existing code, not availability of the real hosted oracle/operator or a public paid round.
-- Physical phones, screen readers, native browser 200% zoom, background CPU profiling, audio perception and DevTools 10%-speed replay were not tested. 320px reflow and 200% text resize were tested separately.
-- Measured contrast is limited to identified solid/alpha-composited surfaces; image/gradient contrast was visually reviewed but not sampled across every frame. Zero axe violations is not universal WCAG certification.
-- Leaderboard reads depend on RPC historical/finalized access and may take time over large seasons; errors never publish partial rankings. Lobby scans the most recent 24 rounds and discloses the bound; manual older-round lookup remains available.
-- Existing full Solidity test suite/static-analysis tools were not rerun for this frontend-only change. Accepted source compiled and deployed-runtime verification/local fork checks ran instead.
+The pinned Better Interface workflow and all six domains were applied and reviewed during work. [INTERFACE-REVIEW.md](INTERFACE-REVIEW.md) records coverage, source locations, findings/fixes and bounded measurements. Actual desktop/mobile screenshots were viewed; hero clipping was corrected before the final export. [DESIGN.md](../DESIGN.md) documents the final source.
 
-All required original artwork and four loop/still pairs remain bundled. No npm registry mirror, dependency archive, cache, node_modules or submodule is delivered. No ignore file was changed. Final artifact copies live under `artifacts/`; persistent validation evidence also lives under `docs/` because artifacts are uploaded separately.
+- Paid games/IMD remain unavailable until real owner configuration, fee-funded budgets/prizes/rounds and a separately hosted verified operator exist. The public operator endpoint stays `null`; no URL, owner, key or production identifier was invented. Correct Phase A bindings remain untouched.
+- Reward funding in the browser fixture was an external transfer through the existing reward funder, not player principal. Actual mainnet reward reserve/rate remain the observed zero values until funded.
+- Wallet extension/device UX, hardware wallets, physical phones, screen readers, native browser zoom, audio perception, CPU profiling and 10%-speed animation replay were not exercised. Controlled-provider Chromium checks do not certify every wallet.
+- Reflow at 320px and 200% text resizing were checked separately. Color measurements cover identified solid surfaces; zero axe findings do not establish full accessibility compliance.
+- Full Solidity suite/static analysis and recompilation were not rerun for this frontend change. Existing runtimes were verified and actual fork transactions exercised them.
+- Historical activity/season reads depend on provider range/finalization support. They report failures rather than publishing invented partial rankings. Existing older-round lookup and reveal/refund recovery remain available.
+- Early browser runs exposed rendering waits and the wrapped disconnect-error message; those failures were repaired and the final run is separately recorded. Tests were not broadcast to mainnet.
+
+Publication was attempted with `imd site publish ./dist --name prio`: exit 1, **503 member_sites_closed**. The public URL still served the old entry module at 11:22:39 UTC. No successful update/CID is claimed; the finished export awaits this project’s platform publisher.
+
+No ignore file, Solidity source, existing dependency/build configuration, protected directory or contract deployment changed. All 24 original artwork assets, four animated/still pairs and three local fonts remain complete in source/export. No dependency registry mirror, unnecessary archive, cache or submodule is delivered.

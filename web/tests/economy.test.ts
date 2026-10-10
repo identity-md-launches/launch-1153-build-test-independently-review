@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { keccak256, stringToHex, zeroHash } from 'viem';
 import { fmt } from '../src/ui';
-import { setLanguage, t, tx } from '../src/i18n';
+import { clearLegacyLanguage } from '../src/i18n';
 import { rankClaims, seasonWindow } from '../src/chain/seasons';
 import { validateRoundDraft, roundRules, rulesHash, pinMatches, type RoundDraft } from '../src/chain/round-admin';
 import { ADDRESSES, type Snapshot } from '../src/chain';
@@ -14,7 +14,13 @@ test('precise token formatting preserves large integers and never hides dust as 
  assert.equal(fmt(189025768306811092460045138888888888n,9,36),'0.189025768');
  assert.equal(fmt(10n**18n,9),'1');
 });
-test('Turkish is first and English toggle preserves protocol identifiers',()=>{setLanguage('tr');assert.equal(t('Ücretsiz','Free'),'Ücretsiz');assert.equal(tx('Connect wallet'),'Cüzdan bağla');setLanguage('en');assert.equal(tx('Connect wallet'),'Connect wallet');setLanguage('tr');});
+test('legacy Turkish preference is removed; language rendering is always English',()=>{
+ const values=new Map([['prism-language','tr']]);
+ const previous=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{removeItem:(k:string)=>values.delete(k)}});
+ clearLegacyLanguage();assert.equal(values.has('prism-language'),false);
+ if(previous)Object.defineProperty(globalThis,'localStorage',previous);else delete (globalThis as any).localStorage;
+});
 test('owner round draft rejects unfunded, stale and invalid protocol/deadline choices',()=>{
  assert.doesNotThrow(()=>validateRoundDraft(draft,s));
  const invalid:Partial<RoundDraft>[]=[{id:2n},{mode:3},{choiceCount:1},{mode:1,choiceCount:3},{mode:2,bossThreshold:0},{bossThreshold:1},{commitDeadline:99n},{revealDeadline:200n},{resultDeadline:300n},{resultDeadline:2600001n},{prize:0n},{prize:201n*10n**18n},{questionHash:zeroHash},{body:'0x'},{minPanel:1},{minQuorum:1},{minPanel:2,minQuorum:3}];

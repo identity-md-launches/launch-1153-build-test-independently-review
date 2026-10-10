@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-10T10:42:18.732Z",
+  "url": "https://prio.sites.imd.fun/",
+  "connectedAccountWithoutClient": "YOUR WALLET\nWallet connected.\n\nFree practice needs no wallet. Connecting does not authorize payments; each transaction is reviewed separately.\n\n0x13af\u20268eac\nETH\n\u2014\nPRIO\n\u2014\nDisconnect",
+  "stakingText": "STAKING VAULT\n\nPRIO is held by the existing StakingVault. Depositing does not create income; only actually funded rewards are distributed. Withdrawals and claims are independent of the operator.\n\nDeposits work; rewards are not currently funded or streaming\n\nNo fixed APY or promised yield. A reserve may include past liabilities; it is not the same as a new reward stream.\n\nActual reward reserve\n0 PRIO\nReserved reward liabilities\n0 PRIO\nStream status\nNo active stream\nReward rate\n0 PRIO / s\nStream ends\nNo stream\nYour claimable reward\n0 PRIO\nYour staked PRIO\n10,000,000\nStake PRIO\nWithdraw PRIO\nAmount to stake\nAvailable: 20,039,361.96005357 PRIO. Approval is only for the entered amount; ETH gas is separate.\nApprove exact amount\nConfirm PRIO deposit\nClaim funded rewards\nRevoke vault approval\n\nYour currently claimable reward is 0 PRIO.\n\nReserve and withdrawal details\n\nEthereum \u00b7 block 26161505 \u00b7 2026-10-10T10:42:11.000Z",
+  "buttons": [
+    {
+      "label": "",
+      "disabled": false
+    },
+    {
+      "label": "Stake PRIO",
+      "disabled": false
+    },
+    {
+      "label": "Withdraw PRIO",
+      "disabled": false
+    },
+    {
+      "label": "Approve exact amount",
+      "disabled": true
+    },
+    {
+      "label": "Confirm PRIO deposit",
+      "disabled": true
+    },
+    {
+      "label": "Claim funded rewards",
+      "disabled": true
+    },
+    {
+      "label": "Revoke vault approval",
+      "disabled": true
+    }
+  ],
+  "walletSigningRequests": 0
+}

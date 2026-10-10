@@ -1,5 +1,6 @@
 import {
   encodeAbiParameters,
+  decodeEventLog,
   keccak256,
   parseAbi,
   stringToHex,
@@ -530,25 +531,22 @@ export async function readActivity(
   if (toBlock < fromBlock || toBlock - fromBlock > 50000n)
     throw new Error("Choose a history range of at most 50,000 blocks");
   const events: ActivityEvent[] = [];
-  for (let start = fromBlock; start <= toBlock; start += 5000n) {
-    const end = start + 4999n > toBlock ? toBlock : start + 4999n;
+  for (let start = fromBlock; start <= toBlock; start += 1000n) {
+    const end = start + 999n > toBlock ? toBlock : start + 999n;
     const groups = await Promise.all(
       (["arena", "treasury", "vault", "adapter", "hook"] as const).map(
         async (contract) => {
-          const logs = await publicClient.getContractEvents({
-            address: ADDRESSES[contract],
-            abi: ABIS[contract],
-            fromBlock: start,
-            toBlock: end,
+          // Avoid long OR-topic filters rejected by some public RPC plans. Decode only
+          // known events from this exact verified address; unknown logs are not activity.
+          const logs = await publicClient.getLogs({
+            address: ADDRESSES[contract], fromBlock: start, toBlock: end,
           });
-          return logs.map((log) => ({
-            contract,
-            name: log.eventName || "Event",
-            args: log.args as Record<string, unknown>,
-            transactionHash: log.transactionHash,
-            blockNumber: log.blockNumber,
-            logIndex: log.logIndex,
-          }));
+          return logs.flatMap(log => {
+            try {
+              const event = decodeEventLog({ abi: ABIS[contract], data: log.data, topics: log.topics });
+              return [{ contract, name: event.eventName || "Event", args: event.args as unknown as Record<string, unknown>, transactionHash: log.transactionHash!, blockNumber: log.blockNumber!, logIndex: log.logIndex! }];
+            } catch { return []; }
+          });
         },
       ),
     );

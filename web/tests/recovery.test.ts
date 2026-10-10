@@ -34,6 +34,9 @@ function harness(
     writes = 0;
   const readCalls: { functionName: string; args: readonly unknown[] }[] = [];
   t.mock.method(publicClient, "getChainId", async () => 1);
+  t.mock.method(publicClient, "estimateContractGas", async () => 50000n);
+  t.mock.method(publicClient, "estimateFeesPerGas", async () => ({ maxFeePerGas: 2000000000n, maxPriorityFeePerGas: 1000000000n }));
+  t.mock.method(publicClient, "getBalance", async () => 10n ** 20n);
   t.mock.method(
     publicClient,
     "getCode",
