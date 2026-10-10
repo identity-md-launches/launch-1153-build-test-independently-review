@@ -1,0 +1,8 @@
+{
+  "PrismRiotToken": "0xb20491cb4af99861ecd090dc774bf111d370ca35b8f1fb6a2f7d40d219accee6",
+  "TreasuryFeeHook": "0x7cf93a54894dede572c61811be288bead906e0fd066d9f16cea66abbea394df3",
+  "FeeTreasury": "0x4b0e2234cad972f5e494889a0e56f79e988573f007e4039c0e5cd71a7c4d540e",
+  "StakingVault": "0xce954f250e9a9395fcee543591dc55edde30b842304f26c6a57715127c7d2319",
+  "Arena": "0xeb4d3436a8107ae907330cc16660d4aae4fbb6115b10ff6f045030fa320c2b7d",
+  "OracleAdapter": "0xc072955d3eb16455aea70f4422ead702c995339b5bbeee6b741104ba51d7a1dc"
+}

@@ -1,0 +1,17 @@
+{
+  "attemptedAtDate": "2026-10-10",
+  "method": "IdentityMD official worker site publish",
+  "label": "prism-riot",
+  "bundleBytes": 2115058,
+  "exitCode": 1,
+  "httpStatus": 503,
+  "error": "member_sites_closed",
+  "detail": "this plane names no member sites",
+  "siteId": null,
+  "cid": null,
+  "publicUrl": null,
+  "entryModule": "assets/index-DbF_2qlm.js",
+  "sourceDestination": "https://github.com/identity-md-launches/launch-1158-complete-missing-application-deployment",
+  "sourceDelivery": "platform handoff pending; not pushed by this worker",
+  "reachabilityChecked": false
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-10",
+  "command": "python3 web/scripts/check-bundle.py",
+  "result": "passed",
+  "limitBytes": 8388608,
+  "measurement": "All tracked and nonignored untracked regular files, including this report; .imd inputs, artifacts and scratch are excluded by existing repository rules.",
+  "prospectiveGitFileCount": 461,
+  "prospectiveGitContentBytes": 8264993,
+  "distBytes": 2620554,
+  "localArtBytes": 1853755,
+  "manifestAssetsVerified": 24,
+  "animatedWebPAssetsWithStills": 4,
+  "fontSourceExportHashesMatched": 3,
+  "relativeExportReferencesVerified": [
+    "./art/social.webp",
+    "./art/favicon.png",
+    "./art/apple-touch-icon.png",
+    "./assets/index-DbF_2qlm.js",
+    "./assets/index-Bov3UerZ.css"
+  ],
+  "packageLockMatchesManifest": true,
+  "onlyOriginalFileModified": "README.md",
+  "protectedExistingPathsUnchanged": true,
+  "ignoreFilesUnchanged": true,
+  "gitSubmodules": 0,
+  "dependencyCacheArchiveFilesInSubmission": 0,
+  "publicPublication": "incomplete: official publisher returned HTTP 503 member_sites_closed"
+}
